@@ -1,0 +1,11 @@
+--- a/src/bayes.c
++++ b/src/bayes.c
+@@ -606,7 +606,7 @@
+     strcpy(workingDir,"");                           /* working directory                             */
+ #   if defined (BEAGLE_ENABLED)
+ #       if defined (WIN_VERSION)
+-    tryToUseBEAGLE = NO;                             /* try to use the BEAGLE library (NO until SSE code works in Win) */
++    tryToUseBEAGLE = YES;                            /* enable BEAGLE on Windows x64 (CYAN build) */
+ #       else
+ 
+ /* Try using Beagle */

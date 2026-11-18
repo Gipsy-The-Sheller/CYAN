@@ -1,0 +1,9 @@
+url=https://github.com/NBISweden/MrBayes
+commit=1d9acf0a84ef84623e3020b3dd8f125b0a623e56
+tag=v3.2.8
+version=3.2.8
+license=GPL-3.0
+beagle_url=https://github.com/beagle-dev/beagle-lib
+beagle_commit=1d4b21d062999c303d0d8b3e1e306c3d5e81d708
+beagle_tag=v4.0.0
+beagle_license=MIT

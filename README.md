@@ -126,6 +126,7 @@ and cross-platform tools.
 | --- | --- | --- | --- | --- |
 | LSD2 | 2.4.4 | all five targets | [tothuhien/lsd2](https://github.com/tothuhien/lsd2) commit `c61110f` | GPL-2.0 |
 | PhyloBayes-MPI | 1.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bayesiancook/pbmpi](https://github.com/bayesiancook/pbmpi) tag `v1.9` | GPL-2.0 |
+| MrBayes | 3.2.8 | Windows x64 | [NBISweden/MrBayes](https://github.com/NBISweden/MrBayes) tag `v3.2.8` | GPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -135,6 +136,15 @@ PhyloBayes-MPI is vendored unmodified from upstream tag `v1.9`
 (`e7ec4d5f6c325a6bdade2a0c01d1e65ef58f8d20`). The Windows x64 build uses the
 Microsoft MPI SDK and runtime; Linux and macOS builds use `mpicxx`. Windows
 arm64 is not supported because Microsoft MPI has no ARM64 SDK.
+
+MrBayes is vendored from tag `v3.2.8` (`1d9acf0…`) with BEAGLE 4.0.0
+(`1d4b21d…`). Three patches are applied: enable BEAGLE on `WIN_VERSION`,
+adapt BEAGLE's CMake/Windows loader for MinGW, and cap BEAGLE CPU threads to
+the number of physical cores. The generic BEAGLE CPU plugin is built; the SSE
+plugin is skipped because its Windows source has a duplicate `check_sse2`
+definition under MinGW. `beaglethreadcount=99` (auto) is resolved to the
+physical core count; explicit values above that are capped, and smaller
+values are kept.
 
 ### MPI runtime
 

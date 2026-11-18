@@ -1,0 +1,95 @@
+--- a/src/mbbeagle.c
++++ b/src/mbbeagle.c
+@@ -29,6 +29,10 @@
+  *
+  */
+ 
++#if defined (_WIN32) && !defined (_WIN32_WINNT)
++#define _WIN32_WINNT 0x0601
++#endif
++
+ #include "bayes.h"
+ #include "mbbeagle.h"
+ #include "mcmc.h"
+@@ -49,6 +53,58 @@
+ 
+ extern int *chainId;
+ extern int numLocalChains;
++
++
++#if defined (WIN_VERSION)
++/* Number of physical cores, used to cap BEAGLE CPU threads. */
++static int MBGetPhysicalCoreCount (void)
++{
++    DWORD length = 0;
++    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer;
++    SYSTEM_INFO sysInfo;
++    int cores = 0;
++
++    if (!GetLogicalProcessorInformation (NULL, &length) &&
++        GetLastError () != ERROR_INSUFFICIENT_BUFFER)
++        {
++        GetSystemInfo (&sysInfo);
++        return (int) sysInfo.dwNumberOfProcessors;
++        }
++    if (length == 0)
++        {
++        GetSystemInfo (&sysInfo);
++        return (int) sysInfo.dwNumberOfProcessors;
++        }
++    buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION) malloc (length);
++    if (buffer == NULL)
++        return 1;
++    if (GetLogicalProcessorInformation (buffer, &length))
++        {
++        DWORD offset = 0;
++        while (offset < length)
++            {
++            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION info =
++                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION) ((BYTE *) buffer + offset);
++            if (info->Relationship == RelationProcessorCore)
++                cores++;
++            offset += sizeof (SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
++            }
++        }
++    free (buffer);
++    if (cores < 1)
++        {
++        GetSystemInfo (&sysInfo);
++        cores = (int) sysInfo.dwNumberOfProcessors;
++        }
++    return cores;
++}
++#else
++static int MBGetPhysicalCoreCount (void)
++{
++    return 1;
++}
++#endif
++
+ 
+ 
+ #if defined (BEAGLE_ENABLED)
+@@ -381,9 +437,19 @@
+             }
+         }
+     /* set max number of CPU threads to be used by BEAGLE with CPU implementation */
+-    if ((details.flags & BEAGLE_FLAG_FRAMEWORK_CPU) && beagleThreadCount > 1 && beagleThreadCount != 99)
+-        {
+-        beagleSetCPUThreadCount(beagleInstance, beagleThreadCount);
++    if (details.flags & BEAGLE_FLAG_FRAMEWORK_CPU)
++        {
++        int mbCpuCores = MBGetPhysicalCoreCount ();
++        if (mbCpuCores < 1)
++            mbCpuCores = 1;
++        if (beagleThreadCount == 99 || beagleThreadCount > mbCpuCores)
++            beagleThreadCount = mbCpuCores;
++        if (beagleThreadCount > 1)
++            {
++            beagleSetCPUThreadCount (beagleInstance, beagleThreadCount);
++            MrBayesPrint ("%s   BEAGLE CPU threads set to %d (physical cores: %d)\n",
++                          spacer, beagleThreadCount, mbCpuCores);
++            }
+         }
+ #endif /* BEAGLE_V3_ENABLED */
+ 
