@@ -30,7 +30,17 @@ if [[ "$CYAN_PLATFORM" != windows ]] \
   mpi_root_args+=(--allow-run-as-root)
 fi
 
-version_out="$("$mpiexec" "${mpi_root_args[@]}" -n 1 "$pb" -v 2>&1 | tr -d '\r')" || {
+run_mpi() {
+  local ranks="$1"
+  shift
+  if [[ ${#mpi_root_args[@]} -gt 0 ]]; then
+    "$mpiexec" "${mpi_root_args[@]}" -n "$ranks" "$@"
+  else
+    "$mpiexec" -n "$ranks" "$@"
+  fi
+}
+
+version_out="$(run_mpi 1 "$pb" -v 2>&1 | tr -d '\r')" || {
   printf '%s\n' "$version_out" >&2
   die "pb_mpi -v failed under the packaged mpiexec"
 }
@@ -39,7 +49,7 @@ version_out="$("$mpiexec" "${mpi_root_args[@]}" -n 1 "$pb" -v 2>&1 | tr -d '\r')
   die "unexpected pb_mpi version output"
 }
 
-mpi_out="$("$mpiexec" "${mpi_root_args[@]}" -n 2 "$pb" -v 2>&1 | tr -d '\r')" || {
+mpi_out="$(run_mpi 2 "$pb" -v 2>&1 | tr -d '\r')" || {
   printf '%s\n' "$mpi_out" >&2
   die "two-rank MPI launch failed"
 }
