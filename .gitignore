@@ -1,0 +1,19 @@
+# Build products
+build/
+dist/
+
+# Compiler intermediates
+*.o
+*.obj
+*.exe
+*.dll
+*.dylib
+*.a
+*.lib
+*.pdb
+
+# Python and OS noise
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
