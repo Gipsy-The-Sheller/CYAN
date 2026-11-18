@@ -67,7 +67,11 @@ bash scripts/smoke_all.sh
 ```
 
 Build output goes to `build/`; packages go to `dist/`. Both directories are
-ignored by git.
+ignored by git. On Windows, IQ-TREE must be built from an MSYS2 **CLANG64**
+shell; a tool can declare this with `REQUIRES_MSYSTEM`.
+```bash
+CYAN_TOOLS=iqtree3 bash scripts/build_all.sh
+```
 
 ### Selective builds (debug)
 
