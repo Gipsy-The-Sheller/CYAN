@@ -1,0 +1,153 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 509c6fb..d8fe11b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,14 +30,6 @@ project (modeltest-ng C CXX)
+ 
+ set(ENABLE_PTHREADS ${USE_PTHREADS})
+ 
+-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+-  # which compilers to use for C and C++
+-  set(CMAKE_C_COMPILER i686-w64-mingw32-gcc-posix)
+-  set(CMAKE_CXX_COMPILER i686-w64-mingw32-g++-posix)
+-
+-  # here is the target environment located
+-  set(CMAKE_FIND_ROOT_PATH /usr/i686-w64-mingw32)
+-endif()
+ 
+ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   # no support for static linking on Mac
+@@ -52,17 +44,19 @@ endif()
+ set (modeltest-ng_VERSION_MAJOR 0)
+ set (modeltest-ng_VERSION_MINOR 1)
+ 
+-set (CMAKE_BUILD_TYPE DEBUG)
++set (CMAKE_BUILD_TYPE RELEASE)
+ #set (CMAKE_BUILD_TYPE RELEASE)
+ #set (CMAKE_VERBOSE_MAKEFILE ON)
+ 
+ message (STATUS "Building ${CMAKE_BUILD_TYPE}")
+ 
+ set (WARN_FLAGS               "-Wall -Wextra")
+-set (CMAKE_CXX_FLAGS          "-std=gnu++11 ${WARN_FLAGS}")
++set (CMAKE_CXX_FLAGS          "-std=gnu++11 -D_GNU_SOURCE ${WARN_FLAGS}")
+ 
+ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -mmacosx-version-min=10.7")
++  # Let the compiler use the SDK's default deployment target. Upstream's
++  # -mmacosx-version-min=10.7 is rejected by current Xcode toolchains.
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+ endif()
+ 
+ set (CMAKE_CXX_FLAGS_DEBUG    "-g")
+diff --git a/libs/CMakeLists.txt b/libs/CMakeLists.txt
+index fea5cf7..1726d14 100644
+--- a/libs/CMakeLists.txt
++++ b/libs/CMakeLists.txt
+@@ -1,13 +1,5 @@
+ message(STATUS "Building dependencies in: ${MODELTEST_LOCALDEPS_DIR}")
+ 
+-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+-  # which compilers to use for C and C++
+-  set(CMAKE_C_COMPILER i686-w64-mingw32-gcc-posix)
+-  set(CMAKE_CXX_COMPILER i686-w64-mingw32-g++-posix)
+-
+-  # here is the target environment located
+-  set(CMAKE_FIND_ROOT_PATH /usr/i686-w64-mingw32)
+-endif()
+ 
+ if (USE_LIBPLL_CMAKE)
+   add_subdirectory(pll-modules)
+diff --git a/src/genesis/std.h b/src/genesis/std.h
+index 7880c87..df49010 100644
+--- a/src/genesis/std.h
++++ b/src/genesis/std.h
+@@ -33,6 +33,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdint>
+ #include <memory>
+ #include <string>
+ 
+diff --git a/src/utils.cpp b/src/utils.cpp
+index d522b5b..7508f15 100644
+--- a/src/utils.cpp
++++ b/src/utils.cpp
+@@ -36,6 +36,10 @@
+ 
+ #if defined(_WIN32) || defined(WIN32)
+ #include <windows.h>
++#elif defined(__APPLE__)
++#include <sys/sysctl.h>
++#elif defined(__linux__)
++#include <sys/sysinfo.h>
+ #endif
+ 
+ using namespace std;
+@@ -895,12 +899,14 @@ mt_size_t Utils::count_logical_cores( void ) {
+ }
+ 
+ mt_size_t Utils::count_physical_cores( void ) {
+-    uint32_t registers[4];
+     unsigned logicalcpucount;
+     unsigned physicalcpucount;
+ 
+     logicalcpucount = count_logical_cores();
+ 
++#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
++    uint32_t registers[4];
++
+     if ((logicalcpucount % 2) != 0)
+         return logicalcpucount;
+     __asm__ __volatile__ ("cpuid " :
+@@ -917,11 +923,16 @@ mt_size_t Utils::count_physical_cores( void ) {
+     } else {
+         physicalcpucount = logicalcpucount;
+     }
++#else
++    /* ARM and other architectures do not expose x86 CPUID; none of the
++       supported ARM64 targets use SMT, so logical cores == physical cores. */
++    physicalcpucount = logicalcpucount;
++#endif
+     return physicalcpucount;
+ }
+ 
+ /* Copyright (C) 2014-2015 Tomas Flouri, Torbjorn Rognes, Jeff Epler */
+-unsigned long Utils::get_memtotal()
++unsigned long long Utils::get_memtotal()
+ {
+ #if defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
+ 
+@@ -964,9 +975,15 @@ unsigned long Utils::get_memtotal()
+   return 0L;
+ #endif
+ #elif defined(_WIN32) || defined(WIN32)
+-  mt_errno = MT_ERROR_SYSTEM;
+-  snprintf(mt_errmsg, ERR_MSG_SIZE, "Cannot determine amount of RAM for Windows");
+-  return 0L;
++  MEMORYSTATUSEX memstatus;
++  memstatus.dwLength = sizeof(memstatus);
++  if (!GlobalMemoryStatusEx(&memstatus))
++  {
++    mt_errno = MT_ERROR_SYSTEM;
++    snprintf(mt_errmsg, ERR_MSG_SIZE, "Cannot determine amount of RAM for Windows");
++    return 0L;
++  }
++  return (unsigned long long) memstatus.ullTotalPhys;
+ #else
+   struct sysinfo si;
+   if (sysinfo(&si))
+diff --git a/src/utils.h b/src/utils.h
+index 865b49f..8ee50be 100644
+--- a/src/utils.h
++++ b/src/utils.h
+@@ -287,7 +287,7 @@ public:
+      * @brief Get the available memory
+      * @return the amount of memory
+      */
+-    static unsigned long get_memtotal( void );
++    static unsigned long long get_memtotal( void );
+ };
+ 
+ }

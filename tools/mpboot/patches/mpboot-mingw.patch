@@ -1,0 +1,81 @@
+diff --git a/pllrepo/src/hardware.c b/pllrepo/src/hardware.c
+index 196867a..e60905d 100644
+--- a/pllrepo/src/hardware.c
++++ b/pllrepo/src/hardware.c
+@@ -3,6 +3,8 @@
+ #include <sys/stat.h>
+ #ifndef WIN32
+ #include <unistd.h>
++#else
++#include <windows.h>
+ #endif
+ 
+ #include <string.h>
+@@ -19,13 +21,23 @@ static __inline void cpuid(unsigned int op, int count,
+                          unsigned int *eax, unsigned int *ebx,
+                          unsigned int *ecx, unsigned int *edx)
+ {
+-#ifdef WIN32
++#if defined(WIN32) && defined(_MSC_VER)
+ 	__int32 regs[4];
+-	__cpuid((int*)regs, (int)op);
++	__cpuid(regs, (int)op);
+ 	*eax = regs[0];
+ 	*ebx = regs[1];
+ 	*ecx = regs[2];
+ 	*edx = regs[3];
++#elif defined(WIN32)
++	*eax = op;
++  *ecx = count;
++  __asm__ __volatile__("cpuid"
++        : "=a" (*eax),
++          "=b" (*ebx),
++          "=c" (*ecx),
++          "=d" (*edx)
++        : "0" (*eax), "2" (*ecx)
++        : "memory");
+ #else
+ 	*eax = op;
+   *ecx = count;
+@@ -72,6 +84,14 @@ static int pll_probe_cpu (pllHardwareInfo * hw)
+   char * physical_id_path = "/topology/physical_package_id";
+   FILE * fd;
+ 
++#ifdef WIN32
++  SYSTEM_INFO sysinfo;
++  GetSystemInfo(&sysinfo);
++  hw->cores = (int) sysinfo.dwNumberOfProcessors;
++  hw->cpu_sockets = 1;
++  return (1);
++#endif
++
+   /* check whether the sys cpu dir exists */
+   if (stat(PLL_SYS_CPU_DIR_PATH, &cpustat)) return (0);
+   
+@@ -142,8 +162,9 @@ static void pll_probe_hardware (pllHardwareInfo * hw)
+ 
+ int pllGetHardwareInfo (pllHardwareInfo * hw)
+ {
+-  pll_probe_hardware (&hw);
+-  pll_probe_cpu (&hw);
++  memset(hw, 0, sizeof(pllHardwareInfo));
++  pll_probe_hardware (hw);
++  pll_probe_cpu (hw);
+ 
+   /* TODO: finish failure checks in probe_hardware and probe_cpu */
+   return (1);
+diff --git a/pllrepo/src/optimizeModel.c b/pllrepo/src/optimizeModel.c
+index 2c557e1..28eae26 100644
+--- a/pllrepo/src/optimizeModel.c
++++ b/pllrepo/src/optimizeModel.c
+@@ -2445,8 +2445,9 @@ static void optimizeProteinModels(pllInstance *tr, partitionList * pr, int *best
+ 		for (partitionIndex = 0; partitionIndex < pr->numberOfPartitions; partitionIndex++) {
+ 			smoothFrequencies(freqs[partitionIndex], PLL_NUM_AA_STATES);
+ 			memcpy(pr->partitionData[partitionIndex]->empiricalFrequencies, freqs[partitionIndex], PLL_NUM_AA_STATES*sizeof(double));
++			rax_free(freqs[partitionIndex]);
+ 		}
+-		free(freqs);
++		rax_free(freqs);
+ 	}
+ 
+ 	for (modelIndex = 0; modelIndex < numProteinModels; modelIndex++) {

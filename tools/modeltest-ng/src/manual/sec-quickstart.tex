@@ -1,0 +1,267 @@
+\section{Getting Started}
+
+\modeltest provides graphical and a command console interfaces.
+
+\subsection{Compilation}
+
+Sources can be compiled for every major Operating System, including Linux, Windows, and Mac OS X. For convenience, with each release you will find binaries for each of these systems.
+Nonetheless, it might happen that for certain distributions only some of theme are available, for example if the realease fixes a bug affecting one single OS.
+
+This tool is distributed under GPL v3 license. 
+The source code is freely available at github repository: \url{https://github.com/ddarriba/modeltest}.
+
+If you clone the repository, make sure to clone also libpll and pll-modules submodules with `--recursive` flag, or call `git submodule init --recursive` afterwards.
+
+For most users, download the latest release and call the build script, {\em build.sh}. 
+It should work correctly and (by default) compile all dependencies and place the final binaries under `build` directory.
+
+\begin{itemize}
+\item Run {\em build.sh} with no arguments for compiling all dependencies and modeltest in 3 flavors: {\em modeltest-ng} (command console execution), {\em modeltest-mpi} (MPI version), and {\em modeltest-gui} (graphical user interface). Note that you need QT 4 or 5 for compiling the GUI version.
+\item Run {\em build.sh clean} for removing all object and output files.
+\item Run {\em build.sh dist} for building a distribution package.
+\end{itemize}
+
+You can change the behaviour and the target directories in the static configuration section, at the beggining of the build script.
+
+\begin{lstlisting}
+# Static configuration                                                          
+build_pll=yes            # build PLL                                            
+build_modules=yes        # build PLL modules library                            
+build_gui=yes            # build modeltest-gui                                  
+dir_base=${PWD}          # base directory                                       
+prefix=${dir_base}/build # output directory for modeltest                       
+qmake_bin=qmake          # qmake binary (for GUI)
+\end{lstlisting}
+
+\begin{tabular}{lll}
+  {\bf property} & {\bf default} & {\bf description} \\
+  \hline
+  build\_pll & yes & Build the pll dependency \\
+  build\_modules & yes & Build the pll modules dependency \\
+  build\_gui & yes & Build the graphical user interface \\
+  dir\_base & current directory & Base directory \\
+  prefix & {\em dir\_base}/build & Target directory \\
+  qmake\_bin & qmake & qmake binary \\
+\end{tabular}
+\vspace{1em}
+
+Note: QT utility, {\em qmake} can be also an absolute/relative path, e.g., {\em qmake\_bin=/usr/local/bin/qmake}.
+For example, I used a custom distribution for OSX and the configuration line looks like this:
+
+\begin{lstlisting}
+qmake_bin=/usr/local/Cellar/qt/5.9.1/bin/qmake
+\end{lstlisting}
+
+If everything went fine, the output should look like this:
+
+\begin{lstlisting}
+Running install script for Linux
+QMake version 3.0
+Using Qt version 5.5.1 in /usr/lib/x86_64-linux-gnu
+...configuration:
+   prefix:       /home/diego/Repositories/phylogenetics/modeltest-dev/build
+   build:        /home/diego/Repositories/phylogenetics/modeltest-dev/build
+   pll:          [yes] /home/diego/Repositories/phylogenetics/modeltest-dev/libs/pll-modules/libs/libpll
+   modules:      [yes] /home/diego/Repositories/phylogenetics/modeltest-dev/libs/pll-modules
+      include:   /home/diego/Repositories/phylogenetics/modeltest-dev/build/include/libpll
+      lib:       /home/diego/Repositories/phylogenetics/modeltest-dev/build/lib
+
+...writing log to /home/diego/Repositories/phylogenetics/modeltest-dev/build.log
+...build pll
+   ...building pll
+...pll OK!
+/home/diego/Repositories/phylogenetics/modeltest-dev
+...build modules
+   ...building modules
+...modules OK!
+/home/diego/Repositories/phylogenetics/modeltest-dev
+...build modeltest
+Project MESSAGE: link to pll local
+Project MESSAGE: pll dynamic link
+...modeltest GUI OK!
+\end{lstlisting}
+
+The console output contains only trace messages.
+The full output is redirected to {\em build.log}, so please check it if there are errors building \modeltest.
+\subsection{Example run}
+
+\begin{enumerate}
+\item Execute the following command line:
+
+\begin{lstlisting}
+$ ./modeltest-ng -i example-data/dna/tiny.fas -h uigf -f ef
+\end{lstlisting}
+
+This will test all 88 models (gamma models with 4 rate categories), and then perform the model selection using Akaike (AIC) and Bayesian (BIC) criteria.
+
+See Section~\ref{sec:arguments} for information about supported arguments.
+
+\item This will generate the following output:
+
+\begin{enumerate}
+
+\item Header:
+
+\begin{lstlisting}
+                             _      _ _            _      _   _  _____ 
+                            | |    | | |          | |    | \ | |/ ____|
+         _ __ ___   ___   __| | ___| | |_ ___  ___| |_   |  \| | |  __ 
+        | '_ ` _ \ / _ \ / _` |/ _ \ | __/ _ \/ __| __|  | . ` | | |_ |
+        | | | | | | (_) | (_| |  __/ | ||  __/\__ \ |_   | |\  | |__| |
+        |_| |_| |_|\___/ \__,_|\___|_|\__\___||___/\__|  |_| \_|\_____|
+--------------------------------------------------------------------------------
+
+modeltest 0.1.0
+Copyright (C) 2017 Diego Darriba, David Posada, Alexandros Stamatakis
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by Diego Darriba.
+--------------------------------------------------------------------------------
+\end{lstlisting}
+
+\item System and configuration details:
+
+\begin{lstlisting}
+Physical cores: 2
+Logical cores:  4
+Memory:         3.57GB
+Extensions:     AVX
+
+\end{lstlisting}
+
+\item Execution options:
+
+\begin{lstlisting}
+--------------------------------------------------------------------------------
+Input data:
+  MSA:        example-data/dna/aP6.fas
+  Tree:       Maximum parsimony
+    file:     -
+  #taxa:      6
+  #sites:     631
+  #patterns:  28
+
+Output:
+  Log:           test.log
+  Starting tree: test.tree
+  Results:       test.out
+
+Selection options:
+  # dna schemes:      11
+  # dna models:       88
+  include model parameters:
+    Uniform:         true
+    p-inv (+I):      true
+    gamma (+G):      true
+    both (+I+G):     true
+    fixed freqs:     true
+    estimated freqs: true
+    #categories:     4
+  asc bias:           none
+  epsilon (opt):      0.01
+  epsilon (par):      0.01
+
+Additional options:
+  verbosity:        very low
+  threads:          1/2
+  RNG seed:         12345
+  subtree repeats:  enabled
+--------------------------------------------------------------------------------
+modeltest-ng was called as follows:
+>> src/modeltest-ng -i example-data/dna/aP6.fas -h uifg -f fe -o test
+\end{lstlisting}
+
+\item Real time optimization results (progress):
+
+\begin{lstlisting}
+Partition 1/1
+
+ ----ID---  ----MODEL---- ---Time--- -Elapsed--- -------LnL------- -Alpha- -P-inv-
+    1/88   JC             0h:00:00   0h:00:00           -1115.1193       -       -
+    2/88   JC+I           0h:00:00   0h:00:00           -1103.3444       -  0.9082
+    3/88   JC+G           0h:00:00   0h:00:00           -1106.6136  0.0200       -
+    4/88   JC+I+G         0h:00:00   0h:00:00           -1103.6235  1.1674  0.8542
+    5/88   F81            0h:00:00   0h:00:00           -1065.0339       -       -
+    6/88   F81+I          0h:00:00   0h:00:00           -1053.6319       -  0.9032
+    7/88   F81+G          0h:00:00   0h:00:00           -1056.6126  0.0200       -
+    8/88   F81+I+G        0h:00:00   0h:00:00           -1053.8953  1.1494  0.8460
+
+...
+
+   85/88   GTR            0h:00:00   0h:00:01           -1063.2358       -       -
+   86/88   GTR+I          0h:00:00   0h:00:01           -1051.9056       -  0.9001
+   87/88   GTR+G          0h:00:00   0h:00:01           -1054.7872  0.0200       -
+   88/88   GTR+I+G        0h:00:00   0h:00:01           -1052.1689  1.1396  0.8417
+ ----ID---  ----MODEL---- ---Time--- -Elapsed--- -------LnL------- -Alpha- -P-inv-
+
+Computation of likelihood scores completed. It took 0h:00:01
+\end{lstlisting}
+
+\item Selected Information Criteria (best model and all models sorted according to each criterion):
+
+\begin{lstlisting}
+BIC       model              K            lnL          score          delta    weight
+--------------------------------------------------------------------------------
+       1  F81+I              4     -1053.6319      2191.0788         0.0000    0.8565
+       2  HKY+I              5     -1053.1557      2196.5737         5.4949    0.0549
+       3  F81+G              4     -1056.6126      2197.0401         5.9613    0.0435
+       4  F81+I+G            5     -1053.8953      2198.0529         6.9741    0.0262
+       5  TrN+I              6     -1052.6019      2201.9134        10.8346    0.0038
+       6  TPM2uf+I           6     -1052.6600      2202.0296        10.9507    0.0036
+       7  HKY+G              5     -1056.0996      2202.4615        11.3827    0.0029
+       8  TPM3uf+I           6     -1052.9534      2202.6164        11.5376    0.0027
+       9  TPM1uf+I           6     -1053.0742      2202.8579        11.7791    0.0024
+      10  HKY+I+G            6     -1053.4340      2203.5777        12.4988    0.0017
+--------------------------------------------------------------------------------
+Best model according to BIC
+---------------------------
+Model:              F81+I
+lnL:                -1053.6319
+Frequencies:        0.4253 0.1506 0.2010 0.2232
+Subst. Rates:       1.0000 1.0000 1.0000 1.0000 1.0000 1.0000
+Inv. sites prop:    0.9032
+Gamma shape:        -
+Score:              2191.0788
+Weight:             0.8565
+---------------------------
+Parameter importances
+---------------------------
+P.Inv:              0.9244
+Gamma:              0.0471
+Gamma-Inv:          0.0282
+Frequencies:        1.0000
+---------------------------
+Model averaged estimates
+---------------------------
+P.Inv:              0.9031
+Alpha:              0.0200
+Alpha-P.Inv:        1.1502
+P.Inv-Alpha:        0.8459
+Frequencies:        0.4253 0.1506 0.2010 0.2232
+
+Commands:
+  > phyml  -i example-data/dna/aP6.fas -m 000000 -f m -v e -a 0 -c 1 -o tlr
+  > raxmlHPC-SSE3 -s example-data/dna/aP6.fas -c 1 -m GTRCATIX --JC69 -n EXEC_NAME -p PARSIMONY_SEED
+  > paup -s example-data/dna/aP6.fas
+  > iqtree -s example-data/dna/aP6.fas -m F81+I
+\end{lstlisting}
+
+\item Consensus tree of the optimized phylogenies using the criterion weights (only for {\bf ML topologies}):
+
+\begin{lstlisting}
+  There are 2 different topologies
+  Topologies written to output.topos
+
+  topo_id   models_count   bic_support   aic_support   aicc_support
+  -----------------------------------------------------------------
+        1             37       0.95897       0.66064       0.66964
+        2             51       0.04103       0.33936       0.33036
+
+  extended majority-rule consensus: ((P4,(P6,P1)[1.00000])[0.95897],P5,(P2,P3)[1.00000]);
+  strict consensus: ((P6,P1)[1.00000],P4,P5,(P2,P3)[1.00000]);
+\end{lstlisting}
+
+\end{enumerate}
+\end{enumerate}

@@ -1,0 +1,65 @@
+diff --git a/src/parse_rtree.y b/src/parse_rtree.y
+index 82b282e..5325728 100644
+--- a/src/parse_rtree.y
++++ b/src/parse_rtree.y
+@@ -32,7 +32,6 @@ extern int pll_rtree_lineno;
+ extern int pll_rtree_colstart;
+ extern int pll_rtree_colend;
+ 
+-extern int pll_rtree_parse();
+ extern struct pll_rtree_buffer_state * pll_rtree__scan_string(const char * str);
+ extern void pll_rtree__delete_buffer(struct pll_rtree_buffer_state * buffer);
+ 
+diff --git a/src/parse_utree.y b/src/parse_utree.y
+index f18aae5..0f1bc43 100644
+--- a/src/parse_utree.y
++++ b/src/parse_utree.y
+@@ -32,7 +32,6 @@ extern int pll_utree_lineno;
+ extern int pll_utree_colstart;
+ extern int pll_utree_colend;
+ 
+-extern int pll_utree_parse();
+ extern struct pll_utree_buffer_state * pll_utree__scan_string(const char * str);
+ extern void pll_utree__delete_buffer(struct pll_utree_buffer_state * buffer);
+ 
+diff --git a/src/pll.c b/src/pll.c
+index d16e2cc..7736023 100644
+--- a/src/pll.c
++++ b/src/pll.c
+@@ -51,7 +51,7 @@ static void dealloc_partition_data(pll_partition_t * partition)
+ 
+   if (partition->tipchars)
+     for (i = 0; i < partition->tips; ++i)
+-      pll_aligned_free(partition->tipchars[i]);
++      free(partition->tipchars[i]);
+   free(partition->tipchars);
+ 
+   if (partition->ttlookup)
+@@ -123,7 +123,7 @@ static void dealloc_partition_data(pll_partition_t * partition)
+     free(repeats->lookup_buffer);
+     free(repeats->toclean_buffer);
+     free(repeats->id_site_buffer);
+-    free(repeats->bclv_buffer);
++    pll_aligned_free(repeats->bclv_buffer);
+     free(repeats->charmap);
+     free(repeats);
+   }
+diff --git a/src/stepwise.c b/src/stepwise.c
+index 82a28e9..b97d99f 100644
+--- a/src/stepwise.c
++++ b/src/stepwise.c
+@@ -89,8 +89,13 @@ static unsigned int * create_shuffled(unsigned int n, unsigned int seed)
+     {
+       int rint;
+       pll_random_r(buf,&rint);
+-      double r = ((double)rint / RAND_MAX);
++      /* pll_random_r returns a 31-bit value. Do not use RAND_MAX here: on
++         Windows/MinGW RAND_MAX is only 32767, which makes the index leave
++         the array. */
++      double r = ((double)rint / 2147483647.0);
+       j = (unsigned int)(r * (i+1));
++      if (j > i)
++        j = i;
+ 
+       PLL_SWAP(x[i],x[j]);
+ 

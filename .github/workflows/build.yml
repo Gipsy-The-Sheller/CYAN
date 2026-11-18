@@ -57,6 +57,8 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            bison
+            flex
             make
             patch
             zip
@@ -191,7 +193,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config \
+            build-essential cmake ninja-build pkg-config bison flex \
             autoconf automake libtool openmpi-bin libopenmpi-dev \
             libeigen3-dev libboost-dev
 
@@ -225,7 +227,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config \
+            build-essential cmake ninja-build pkg-config bison flex \
             autoconf automake libtool openmpi-bin libopenmpi-dev \
             libeigen3-dev libboost-dev
 
@@ -256,10 +258,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
-        run: brew install cmake ninja pkg-config open-mpi eigen boost libomp
+        run: brew install cmake ninja pkg-config open-mpi eigen boost libomp bison flex
 
       - name: Build
-        run: bash scripts/build_all.sh
+        run: |
+          export PATH="$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
+          bash scripts/build_all.sh
 
       - name: Smoke test
         run: bash scripts/smoke_all.sh

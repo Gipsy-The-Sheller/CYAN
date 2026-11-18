@@ -1,0 +1,7 @@
+url=https://github.com/diepthihoang/mpboot
+branch=mpboot
+commit=28648696ff3fe8dc61e47dafd3195538476384b2
+commit_date=2024-12-04
+version=1.1.1
+license=GPL-2.0
+note=post-v1.2 branch head; upstream CMake and binary still report 1.1.1

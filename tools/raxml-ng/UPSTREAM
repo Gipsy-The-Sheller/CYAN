@@ -1,0 +1,16 @@
+url=https://github.com/amkozlov/raxml-ng
+tag=1.2.2
+commit=805318cef87bd5d67064efa299b5d1cf948367fd
+commit_date=2024-04-30
+version=1.2.2
+license=AGPL-3.0
+pll_modules.url=https://github.com/ddarriba/pll-modules
+pll_modules.commit=09c71085ae89838dcaa2bccb548c570aa7297380
+pll_modules.license=GPL-3.0
+libpll.url=https://github.com/xflouris/libpll-2
+libpll.commit=14675b3f91630418ddd9e577deaa8408734637f6
+libpll.license=AGPL-3.0
+terraphast.url=https://github.com/amkozlov/terraphast-one
+terraphast.commit=8af2e4c838c82329adf14fa8df2c341b757378af
+terraphast.commit_date=2020-04-13
+terraphast.license=GPL-3.0

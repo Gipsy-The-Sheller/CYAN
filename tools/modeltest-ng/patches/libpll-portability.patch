@@ -1,0 +1,93 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 1ff9878..3dcb11b 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -167,7 +167,9 @@ if (ENABLE_AVX2)
+   SET_SOURCE_FILES_PROPERTIES( ${LIBPLL_AVX2_SOURCES} PROPERTIES COMPILE_FLAGS ${AVX2_FLAGS} )
+ endif ()
+ 
+-add_definitions(-DHAVE_X86INTRIN_H)
++if (ENABLE_SSE OR ENABLE_AVX OR ENABLE_AVX2)
++  add_definitions(-DHAVE_X86INTRIN_H)
++endif()
+ 
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBPLL_BASE_FLAGS}")
+ 
+diff --git a/src/hardware.c b/src/hardware.c
+index 2241d4a..b7adf45 100644
+--- a/src/hardware.c
++++ b/src/hardware.c
+@@ -28,7 +28,7 @@
+     https://github.com/xflouris/libpll/issues/138
+ 
+ */
+-#if (defined(__APPLE__)) || \
++#if (defined(__APPLE__) && !defined(__aarch64__)) || \
+     (!defined(__clang__) && defined(__GNUC__) && (__GNUC__ < 4 || \
+       (__GNUC__ == 4 && __GNUC_MINOR__ < 8))) || \
+     (defined(__clang__) && (__clang_major__ < 3 || \
+diff --git a/src/parse_rtree.y b/src/parse_rtree.y
+index 0b2bce8..c7c7812 100644
+--- a/src/parse_rtree.y
++++ b/src/parse_rtree.y
+@@ -28,7 +28,6 @@ extern int pll_rtree_lineno;
+ extern int pll_rtree_colstart;
+ extern int pll_rtree_colend;
+ 
+-extern int pll_rtree_parse();
+ extern struct pll_rtree_buffer_state * pll_rtree__scan_string(const char * str);
+ extern void pll_rtree__delete_buffer(struct pll_rtree_buffer_state * buffer);
+ 
+diff --git a/src/parse_utree.y b/src/parse_utree.y
+index 70f20eb..b451332 100644
+--- a/src/parse_utree.y
++++ b/src/parse_utree.y
+@@ -28,7 +28,6 @@ extern int pll_utree_lineno;
+ extern int pll_utree_colstart;
+ extern int pll_utree_colend;
+ 
+-extern int pll_utree_parse();
+ extern struct pll_utree_buffer_state * pll_utree__scan_string(const char * str);
+ extern void pll_utree__delete_buffer(struct pll_utree_buffer_state * buffer);
+ 
+diff --git a/src/pll.c b/src/pll.c
+index 8121fce..a5bc94e 100644
+--- a/src/pll.c
++++ b/src/pll.c
+@@ -51,7 +51,7 @@ static void dealloc_partition_data(pll_partition_t * partition)
+ 
+   if (partition->tipchars)
+     for (i = 0; i < partition->tips; ++i)
+-      pll_aligned_free(partition->tipchars[i]);
++      free(partition->tipchars[i]);
+   free(partition->tipchars);
+ 
+   if (partition->ttlookup)
+@@ -123,7 +123,7 @@ static void dealloc_partition_data(pll_partition_t * partition)
+     free(repeats->lookup_buffer);
+     free(repeats->toclean_buffer);
+     free(repeats->id_site_buffer);
+-    free(repeats->bclv_buffer);
++    pll_aligned_free(repeats->bclv_buffer);
+     free(repeats->charmap);
+     free(repeats);
+   }
+diff --git a/src/stepwise.c b/src/stepwise.c
+index 4586e52..839cc6e 100644
+--- a/src/stepwise.c
++++ b/src/stepwise.c
+@@ -82,8 +82,13 @@ static unsigned int * create_shuffled(unsigned int n, unsigned int seed)
+     {
+       int rint;
+       pll_random_r(buf,&rint);
+-      double r = ((double)rint / RAND_MAX);
++      /* pll_random_r returns a 31-bit value. Do not use RAND_MAX here: on
++         Windows/MinGW RAND_MAX is only 32767, which makes the index leave
++         the array. */
++      double r = ((double)rint / 2147483647.0);
+       j = (unsigned int)(r * (i+1));
++      if (j > i)
++        j = i;
+ 
+       PLL_SWAP(x[i],x[j]);
+ 

@@ -1,0 +1,5 @@
+url=local YGBlocks (original implementation)
+version=1.0.0
+author=Zhi-Jie Xu
+license=MIT
+note=Independent implementation compatible with GBlocks 0.91b block selection.

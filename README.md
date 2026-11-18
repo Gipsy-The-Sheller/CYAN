@@ -69,6 +69,9 @@ bash scripts/smoke_all.sh
 Build output goes to `build/`; packages go to `dist/`. Both directories are
 ignored by git. On Windows, IQ-TREE must be built from an MSYS2 **CLANG64**
 shell; a tool can declare this with `REQUIRES_MSYSTEM`.
+
+ModelTest-NG and RAxML-NG additionally need Bison and Flex at configure time
+(MSYS2 `bison`/`flex`, Debian/Ubuntu `bison`/`flex`, or Homebrew).
 ```bash
 CYAN_TOOLS=iqtree3 bash scripts/build_all.sh
 ```
@@ -139,6 +142,11 @@ and cross-platform tools.
 | PhyloBayes-MPI | 1.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bayesiancook/pbmpi](https://github.com/bayesiancook/pbmpi) tag `v1.9` | GPL-2.0 |
 | MrBayes | 3.2.8 | Windows x64, Linux x64/arm64, macOS arm64 | [NBISweden/MrBayes](https://github.com/NBISweden/MrBayes) tag `v3.2.8` | GPL-3.0 |
 | IQ-TREE | 3.1.4 | Windows x64, Linux x64/arm64, macOS arm64 | [iqtree/iqtree3](https://github.com/iqtree/iqtree3) tag `v3.1.4` | GPL-2.0 |
+| TrimAl | 1.5.1 | Windows x64, Linux x64/arm64, macOS arm64 | [inab/trimal](https://github.com/inab/trimal) tag `v1.5.1` | GPL-3.0 |
+| ModelTest-NG | 0.1.7 | Windows x64, Linux x64/arm64, macOS arm64 | [ddarriba/modeltest](https://github.com/ddarriba/modeltest) tag `v0.1.7` | GPL-3.0 (libpll AGPL-3.0) |
+| RAxML-NG | 1.2.2 | Windows x64, Linux x64/arm64, macOS arm64 | [amkozlov/raxml-ng](https://github.com/amkozlov/raxml-ng) tag `1.2.2` | AGPL-3.0 |
+| MPBoot | 1.1.1 | Windows x64, Linux x64 | [diepthihoang/mpboot](https://github.com/diepthihoang/mpboot) commit `2864869` | GPL-2.0 |
+| YGBlocks | 1.0.0 | Windows x64, Linux x64/arm64, macOS arm64 | local MIT implementation | MIT |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -167,6 +175,68 @@ with OpenMPI. The package bundles OpenMPI and the BEAGLE runtime; `mb` is a
 wrapper that sets the BEAGLE/MPI paths and runs `mb.bin`:
 `./mpiexec -n 4 ./mb input.nex`. The BEAGLE SSE plugin maps SSE2 intrinsics to
 NEON on ARM64, and the CPU thread cap uses `sysconf`/`hw.physicalcpu` on Unix.
+
+### ModelTest-NG and RAxML-NG on Windows
+
+Both programs depend on libpll and pll-modules, which upstream has not
+validated with native MinGW. CYAN configures them with CMake and applies
+three patches under `tools/<name>/patches/`:
+
+- the program-specific patch removes hard-coded cross compilers and adds a
+  Windows system layer (`GlobalMemoryStatusEx`, `GetProcessTimes`, CPU
+  count, `realpath`; ModelTest also needs an x86 CPUID guard for ARM64);
+- `pll-modules` aligned allocations (`deriv_precomp`, branch-optimizer
+  `precomp_buffers`, binary buffers) must be released with
+  `pll_aligned_free`, not `free`, on Windows;
+- libpll's Fisher-Yates starting-tree shuffle divides a 31-bit random value
+  by `RAND_MAX`. On Windows `RAND_MAX` is 32767, so the shuffle index left
+  the array and crashed parsimony tree construction. The patch uses the
+  31-bit divisor.
+
+The Windows builds of both tools are self-contained (`msvcrt.dll` only).
+ModelTest's and RAxML-NG's compile-time SIMD is disabled, while libpll
+keeps runtime SSE/AVX dispatch. On Linux and macOS the same sources build
+without the MinGW layer; the libpll/pll-modules fixes apply everywhere.
+
+Bison and Flex are needed at configure time; the CI jobs install them.
+
+### MPBoot
+
+MPBoot is an IQ-TREE 1.x-derived maximum-parsimony/bootstrapping program
+with its own vendored libpll. CYAN builds the maintained upstream branch
+head with `-DIQTREE_FLAGS=avx`; the binary reports version 1.1.1 although
+the upstream release tag is `v1.2`. The vendored libpll needs two fixes:
+
+- its hardware probe used MSVC's `__cpuid` on MinGW and called helpers with
+  a pointer-to-pointer; the patch uses GCC inline assembly and
+  `GetSystemInfo` for the Windows core count;
+- `pllBaseFrequenciesInstance` allocates with `rax_malloc`, which is
+  `_aligned_malloc` on Windows, so `optimizeModel.c` must release those
+  arrays with `rax_free` rather than `free`.
+
+Only x86-64 Windows and Linux are built. The IQ-TREE 1.x code uses x86
+CPUID and AVX vector classes, so no ARM64 package is offered.
+
+### YGBlocks
+
+YGBlocks is an independent MIT-licensed reimplementation of GBlocks 0.91b,
+written for YR-MPE. It reads FASTA and PHYLIP (interleaved or one-line
+sequential) and produces the selected alignment plus a masked report. The
+selected-alignment FASTA is byte-compatible with the original GBlocks binary
+for nucleotide, codon and protein data; protein similarity uses the Gonnet 120
+matrix.
+
+The package root is `Gblocks/` and the binary is `Gblocks(.exe)`, so it
+extracts directly over `YR_MPE/bin/Gblocks/`. The `-p=t` report is an
+interleaved PHYLIP-style alignment of the original data: kept positions are
+uppercase, removed positions lowercase, and `-` gaps become `.`.
+
+### TrimAl
+
+TrimAl 1.5.1 is a small C++ program built with its upstream makefiles. On
+Windows the build passes the Windows `TMP`/`TEMP`/`TMPDIR` paths as make
+variables because MSYS2 `make` strips them, which otherwise makes GCC fall
+back to the unwritable `C:\WINDOWS` directory.
 
 ### IQ-TREE and AVX on Windows
 
@@ -220,4 +290,6 @@ install OpenMPI/MS-MPI and run the `.bin` executable with the system
 ## Licensing
 
 Each tool keeps its upstream license, included in both `tools/<name>/` and the
-packaged archive. CYAN only adds build scripts and packaging metadata.
+packaged archive. ModelTest-NG and RAxML-NG additionally ship the licenses of
+their bundled `pll-modules`, `libpll` and (for RAxML-NG) `terraphast`
+libraries. CYAN only adds build scripts and packaging metadata.

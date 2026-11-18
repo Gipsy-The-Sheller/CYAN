@@ -1,0 +1,140 @@
+diff --git a/src/binary/pll_binary.c b/src/binary/pll_binary.c
+index 950818a..1ffd520 100644
+--- a/src/binary/pll_binary.c
++++ b/src/binary/pll_binary.c
+@@ -1260,7 +1260,10 @@ PLL_EXPORT void * pllmod_binary_custom_load(FILE * bin_file,
+   if (!bin_fread (data, *size, 1, bin_file))
+   {
+     pllmod_set_error(PLLMOD_BIN_ERROR_BINARY_IO, "Error reading data.");
+-    free(data);
++    if (*attributes & PLLMOD_BIN_ATTRIB_ALIGNED)
++      pll_aligned_free(data);
++    else
++      free(data);
+     return PLL_FAILURE;
+   }
+ 
+diff --git a/src/msa/pll_msa.c b/src/msa/pll_msa.c
+index 53329c4..59a59f2 100644
+--- a/src/msa/pll_msa.c
++++ b/src/msa/pll_msa.c
+@@ -315,54 +315,30 @@ static int find_duplicate_strings_htable(char ** const strings,
+   if (!strings)
+     return PLL_FAILURE;
+ 
+-  unsigned long * data = (unsigned long *)malloc(string_count *
+-                                                sizeof(unsigned long));
+-
+   unsigned long * tmpdup = (unsigned long *)malloc(string_count * 2 *
+                                                 sizeof(unsigned long));
+-
+-  if (!data || !tmpdup)
++  if (!tmpdup)
+   {
+-    if (data)
+-      free(data);
+-    if (tmpdup)
+-      free(tmpdup);
+     pllmod_set_error(PLL_ERROR_MEM_ALLOC,
+                      "Cannot allocate memory for duplicates array");
+     return PLL_FAILURE;
+   }
+ 
+-  hcreate(string_count);
+-
+-  unsigned long i;
++  unsigned long i, j;
+   for (i = 0; i < string_count; ++i)
+   {
+-    data[i] = i;
+-    ENTRY entry;
+-
+-#ifdef __APPLE__
+-    entry.key = strdup(strings[i]);
+-#else
+-    entry.key = (char *) strings[i];
+-#endif
+-
+-    entry.data = (void *)(data+i);
+-    ENTRY *found = hsearch(entry, ENTER);
+-    if (found->data != entry.data)
++    for (j = 0; j < i; ++j)
+     {
+-      const unsigned long idx1 = *((unsigned long *) found->data);
+-      const unsigned long idx2 = *((unsigned long *) entry.data);
+-
+-      /* duplicate found, save it */
+-      tmpdup[(*duplicate_count)*2] = idx1;
+-      tmpdup[(*duplicate_count)*2+1] = idx2;
+-      (*duplicate_count)++;
++      if (strcmp(strings[i], strings[j]) == 0)
++      {
++        tmpdup[(*duplicate_count)*2] = j;
++        tmpdup[(*duplicate_count)*2+1] = i;
++        (*duplicate_count)++;
++        break;
++      }
+     }
+   }
+ 
+-  hdestroy();
+-  free(data);
+-
+   if (*duplicate_count > 0)
+   {
+     *duplicates = (unsigned long *) realloc(tmpdup, (*duplicate_count) * 2 *
+diff --git a/src/optimize/pll_optimize.c b/src/optimize/pll_optimize.c
+index ebbc226..2ac5013 100644
+--- a/src/optimize/pll_optimize.c
++++ b/src/optimize/pll_optimize.c
+@@ -1919,7 +1919,7 @@ cleanup:
+     for (p = 0; p < partition_count; ++p)
+     {
+       if (params.precomp_buffers[p])
+-        free(params.precomp_buffers[p]);
++        pll_aligned_free(params.precomp_buffers[p]);
+     }
+     pll_aligned_free(params.precomp_buffers);
+   }
+diff --git a/src/pllmod_common.c b/src/pllmod_common.c
+index ff8979a..ca6ee88 100644
+--- a/src/pllmod_common.c
++++ b/src/pllmod_common.c
+@@ -39,9 +39,9 @@
+  * @param[in] errmsg_fmt formatted error message
+  */
+ __attribute__((format(printf, 2, 3)))
+-void pllmod_set_error(int errno, const char* errmsg_fmt, ...)
++void pllmod_set_error(int err, const char* errmsg_fmt, ...)
+ {
+-  pll_errno = errno;
++  pll_errno = err;
+ 
+   va_list args;
+   va_start(args, errmsg_fmt);
+diff --git a/src/pllmod_common.h b/src/pllmod_common.h
+index 9d51ad5..e6f1b12 100644
+--- a/src/pllmod_common.h
++++ b/src/pllmod_common.h
+@@ -40,7 +40,7 @@
+ #define PLLMOD_ERROR_INVALID_INDEX                1003
+ #define PLLMOD_ERROR_NOT_IMPLEMENTED              1004
+ 
+-void pllmod_set_error(int errno, const char* errmsg_fmt, ...);
++void pllmod_set_error(int err, const char* errmsg_fmt, ...);
+ void pllmod_reset_error();
+ 
+ #endif
+diff --git a/src/tree/treeinfo.c b/src/tree/treeinfo.c
+index a0bbf9c..95d223d 100644
+--- a/src/tree/treeinfo.c
++++ b/src/tree/treeinfo.c
+@@ -760,7 +760,7 @@ PLL_EXPORT int pllmod_treeinfo_destroy_partition(pllmod_treeinfo_t * treeinfo,
+ 
+   if (treeinfo->deriv_precomp[partition_index])
+   {
+-    free(treeinfo->deriv_precomp[partition_index]);
++    pll_aligned_free(treeinfo->deriv_precomp[partition_index]);
+     treeinfo->deriv_precomp[partition_index] = NULL;
+   }
+ 

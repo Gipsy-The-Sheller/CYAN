@@ -1,0 +1,293 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 57cef31..a1b2714 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -84,7 +84,7 @@ endif()
+ message (STATUS "Building ${CMAKE_BUILD_TYPE}")
+ 
+ set (WARN_FLAGS               "-Wall -Wextra")
+-set (CMAKE_CXX_FLAGS          "-std=c++11 ${WARN_FLAGS}")
++set (CMAKE_CXX_FLAGS          "-std=c++11 -D_GNU_SOURCE ${WARN_FLAGS}")
+ 
+ if (ENABLE_GMP)
+ #find_package(GMP REQUIRED)
+diff --git a/src/common.h b/src/common.h
+index a965a76..ef31475 100644
+--- a/src/common.h
++++ b/src/common.h
+@@ -35,8 +35,8 @@ void libpll_reset_error();
+ 
+ double sysutil_gettime();
+ void sysutil_show_rusage();
+-unsigned long sysutil_get_memused();
+-unsigned long sysutil_get_memtotal(bool ignore_errors = true);
++unsigned long long sysutil_get_memused();
++unsigned long long sysutil_get_memtotal(bool ignore_errors = true);
+ 
+ std::string sysutil_get_cpu_model();
+ unsigned int sysutil_get_cpu_cores();
+diff --git a/src/util/sysutil.cpp b/src/util/sysutil.cpp
+index e7c0a01..2aa5bc5 100644
+--- a/src/util/sysutil.cpp
++++ b/src/util/sysutil.cpp
+@@ -1,8 +1,15 @@
+ #if (!defined(_WIN32) && !defined(__aarch64__)) 
+ #include <cpuid.h>
+ #endif
++#ifdef _WIN32
++#include <windows.h>
++#include <psapi.h>
++#include <intrin.h>
++#include <direct.h>
++#else
+ #include <sys/time.h>
+ #include <sys/resource.h>
++#endif
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #if defined __APPLE__
+@@ -55,6 +62,12 @@ void libpll_reset_error()
+ 
+ void * xmemalign(size_t size, size_t alignment)
+ {
++#ifdef _WIN32
++  void * t = _aligned_malloc(size, alignment);
++  if (!t)
++    sysutil_fatal("Unable to allocate enough memory.");
++  return t;
++#else
+   void * t = NULL;
+   int err = posix_memalign(& t, alignment, size);
+ 
+@@ -62,6 +75,7 @@ void * xmemalign(size_t size, size_t alignment)
+     sysutil_fatal("Unable to allocate enough memory.");
+ 
+   return t;
++#endif
+ }
+ 
+ double sysutil_gettime()
+@@ -85,90 +99,97 @@ double sysutil_gettime()
+ 
+ void sysutil_show_rusage()
+ {
++#ifdef _WIN32
++  FILETIME creation, exit, kernel, user;
++  ULARGE_INTEGER k, u;
++  PROCESS_MEMORY_COUNTERS pmc;
++  GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user);
++  k.LowPart = kernel.dwLowDateTime; k.HighPart = kernel.dwHighDateTime;
++  u.LowPart = user.dwLowDateTime; u.HighPart = user.dwHighDateTime;
++  double user_s = (double)u.QuadPart * 1.0e-7;
++  double sys_s  = (double)k.QuadPart * 1.0e-7;
++  double mem_mb = 0.0;
++  if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
++    mem_mb = (double)pmc.WorkingSetSize / (1024.0 * 1024.0);
++  fprintf(stderr, "Time: %.3fs (user) %.3fs (sys) Memory: %.0fMB",
++          user_s, sys_s, mem_mb);
++  fputc(10, stderr);
++#else
+   struct rusage r_usage;
+   getrusage(RUSAGE_SELF, & r_usage);
+-  
+-  fprintf(stderr,
+-          "Time: %.3fs (user)", 
+-          r_usage.ru_utime.tv_sec * 1.0 + (double)r_usage.ru_utime.tv_usec * 1.0e-6);
+-  fprintf(stderr,
+-          " %.3fs (sys)",
+-          r_usage.ru_stime.tv_sec * 1.0 + r_usage.ru_stime.tv_usec * 1.0e-6);
+-
++  fprintf(stderr, "Time: %.3fs (user)",
++          r_usage.ru_utime.tv_sec * 1.0 + (double) r_usage.ru_utime.tv_usec * 1.0e-6);
++  fprintf(stderr, " %.3fs (sys)",
++          r_usage.ru_stime.tv_sec * 1.0 + (double) r_usage.ru_stime.tv_usec * 1.0e-6);
+ #if defined __APPLE__
+-  /* Mac: ru_maxrss gives the size in bytes */
+-  fprintf(stderr, " Memory: %.0fMB\n", r_usage.ru_maxrss * 1.0e-6);
++  fprintf(stderr, " Memory: %.0fMB", r_usage.ru_maxrss * 1.0e-6);
++  fputc(10, stderr);
+ #else
+-  /* Linux: ru_maxrss gives the size in kilobytes  */
+-  fprintf(stderr, " Memory: %.0fMB\n", r_usage.ru_maxrss * 1.0e-3);
++  fprintf(stderr, " Memory: %.0fMB", r_usage.ru_maxrss * 1.0e-3);
++  fputc(10, stderr);
++#endif
+ #endif
+ }
+ 
+-unsigned long sysutil_get_memused()
++unsigned long long sysutil_get_memused()
+ {
++#ifdef _WIN32
++  PROCESS_MEMORY_COUNTERS pmc;
++  if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
++    return (unsigned long long)pmc.WorkingSetSize;
++  return 0;
++#else
+   struct rusage r_usage;
+   getrusage(RUSAGE_SELF, & r_usage);
+-
+ #if defined __APPLE__
+-  /* Mac: ru_maxrss gives the size in bytes */
+   return (unsigned long)(r_usage.ru_maxrss);
+ #else
+-  /* Linux: ru_maxrss gives the size in kilobytes  */
+   return (unsigned long)r_usage.ru_maxrss * 1024;
+ #endif
++#endif
+ }
+ 
+-unsigned long sysutil_get_memtotal(bool ignore_errors)
++unsigned long long sysutil_get_memtotal(bool ignore_errors)
+ {
++#ifdef _WIN32
++  MEMORYSTATUSEX status;
++  status.dwLength = sizeof(status);
++  if (GlobalMemoryStatusEx(&status))
++    return (unsigned long long)status.ullTotalPhys;
++  if (ignore_errors)
++    return 0;
++  throw runtime_error("Cannot determine amount of RAM");
++#else
+ #if defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE)
+-
+   long phys_pages = sysconf(_SC_PHYS_PAGES);
+   long pagesize = sysconf(_SC_PAGESIZE);
+-
+   if ((phys_pages == -1) || (pagesize == -1))
+   {
+-    if (ignore_errors)
+-      return 0;
+-    else
+-      throw runtime_error("Cannot determine amount of RAM");
++    if (ignore_errors) return 0;
++    throw runtime_error("Cannot determine amount of RAM");
+   }
+-
+-  // sysconf(3) notes that pagesize * phys_pages can overflow, such as
+-  // when long is 32-bits and there's more than 4GB RAM.  Since vsearch
+-  // apparently targets LP64 systems like x86_64 linux, this will not
+-  // arise in practice on the intended platform.
+-
+   if (pagesize > LONG_MAX / phys_pages)
+     return LONG_MAX;
+-  else
+-    return (unsigned long)pagesize * (unsigned long)phys_pages;
+-
++  return (unsigned long)pagesize * (unsigned long)phys_pages;
+ #elif defined(__APPLE__)
+-
+   int mib [] = { CTL_HW, HW_MEMSIZE };
+   int64_t ram = 0;
+   size_t length = sizeof(ram);
+   if(-1 == sysctl(mib, 2, &ram, &length, NULL, 0))
+   {
+-    if (ignore_errors)
+-      return 0;
+-    else
+-      throw runtime_error("Cannot determine amount of RAM");
++    if (ignore_errors) return 0;
++    throw runtime_error("Cannot determine amount of RAM");
+   }
+   return ram;
+-
+ #else
+-
+   struct sysinfo si;
+   if (sysinfo(&si))
+   {
+-    if (ignore_errors)
+-      return 0;
+-    else
+-      throw runtime_error("Cannot determine amount of RAM");
++    if (ignore_errors) return 0;
++    throw runtime_error("Cannot determine amount of RAM");
+   }
+   return si.totalram * si.mem_unit;
+-
++#endif
+ #endif
+ }
+ 
+@@ -262,7 +283,6 @@ static int threads_per_core()
+ {
+   return ht_enabled() ? 2 : 1;
+ }
+-
+ unsigned int sysutil_task_cpu_cores(bool physical /* = false */)
+ {
+   auto ncores = std::thread::hardware_concurrency();
+@@ -281,7 +301,11 @@ unsigned int sysutil_task_cpu_cores(bool physical /* = false */)
+ 
+ long sysutil_online_cpu_cores()
+ {
++#ifdef _WIN32
++  return (long)std::thread::hardware_concurrency();
++#else
+   return sysconf(_SC_NPROCESSORS_ONLN);
++#endif
+ }
+ 
+ 
+@@ -296,12 +320,12 @@ unsigned long sysutil_get_cpu_features()
+ //  OS_AVX = detect_OS_AVX();
+ //  OS_AVX512 = detect_OS_AVX512();
+ 
+-  int info[4];
++  int info[4] = {0, 0, 0, 0};
+   get_cpuid(info, 0);
+   int nIds = info[0];
+ 
+   get_cpuid(info, 0x80000000);
+-  u_int32_t nExIds = info[0];
++  uint32_t nExIds = info[0];
+ 
+   //  Detect Features
+   if (nIds >= 0x00000001)
+@@ -450,6 +474,12 @@ double sysutil_get_energy()
+ 
+ std::string sysutil_realpath(const std::string& path)
+ {
++#ifdef _WIN32
++  char buf[_MAX_PATH];
++  if (_fullpath(buf, path.c_str(), _MAX_PATH))
++    return std::string(buf);
++  throw ios_base::failure("Unknown I/O error: " + path);
++#else
+   char * real_path = realpath(path.c_str(), NULL);
+   if (real_path)
+   {
+@@ -457,26 +487,16 @@ std::string sysutil_realpath(const std::string& path)
+     free(real_path);
+     return result;
+   }
+-  else
++  switch(errno)
+   {
+-    switch(errno)
+-    {
+-      case EACCES:
+-        throw ios_base::failure("Can't access file: " + path);
+-        break;
+-      case ENOENT:
+-        throw ios_base::failure("File doesn't exist: " + path);
+-        break;
+-      case ELOOP:
+-      case ENAMETOOLONG:
+-        throw ios_base::failure("Path too long or too many symlinks: " + path);
+-        break;
+-      default:
+-        throw ios_base::failure("Unknown I/O error: " + path);
+-    }
++    case EACCES: throw ios_base::failure("Can't access file: " + path);
++    case ENOENT: throw ios_base::failure("File doesn't exist: " + path);
++    case ELOOP:
++    case ENAMETOOLONG: throw ios_base::failure("Path too long or too many symlinks: " + path);
++    default: throw ios_base::failure("Unknown I/O error: " + path);
+   }
++#endif
+ }
+-
+ bool sysutil_file_exists(const std::string& fname, int access_mode)
+ {
+   return !sysutil_dir_exists(fname) && access(fname.c_str(), access_mode) == 0;
