@@ -1,5 +1,4 @@
 #include "../alignment/seqregions.h"
-#include "../alignment/seqregionsmem.h"
 
 #pragma once
 

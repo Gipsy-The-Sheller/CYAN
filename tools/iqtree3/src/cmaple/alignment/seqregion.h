@@ -101,7 +101,6 @@ class SeqRegion : public Mutation {
    */
   SeqRegion(cmaple::StateType n_type,
             cmaple::PositionType n_position,
-            cmaple::StateType n_prev_state,
             cmaple::RealNumType n_plength_observation = -1,
             cmaple::RealNumType n_plength_from_root = -1,
             LHPtrType n_likelihood = nullptr);
@@ -111,7 +110,6 @@ class SeqRegion : public Mutation {
    */
   SeqRegion(cmaple::StateType n_type,
             cmaple::PositionType n_position,
-            cmaple::StateType n_prev_state,
             cmaple::RealNumType n_plength_observation,
             cmaple::RealNumType n_plength_from_root,
             const LHType& n_likelihood);
@@ -124,7 +122,6 @@ class SeqRegion : public Mutation {
    */
   SeqRegion(cmaple::StateType n_type,
             cmaple::PositionType n_position,
-            cmaple::StateType n_prev_state,
             cmaple::SeqRegion::SeqType seq_type,
             int max_num_states);
 
@@ -158,10 +155,10 @@ class SeqRegion : public Mutation {
    */
   static inline SeqRegion clone(const SeqRegion& from) {
     if (from.likelihood)
-        return SeqRegion(from.type, from.position, from.prev_state, from.plength_observation2node,
+      return SeqRegion(from.type, from.position, from.plength_observation2node,
                        from.plength_observation2root, *from.likelihood);
     else
-      return SeqRegion(from.type, from.position, from.prev_state, from.plength_observation2node,
+      return SeqRegion(from.type, from.position, from.plength_observation2node,
                        from.plength_observation2root);
   }
 

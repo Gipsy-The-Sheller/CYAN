@@ -354,7 +354,6 @@ void cmaple::convert_real_numbers(RealNumType*& arr, string input_str) {
   int number_count = static_cast<int>(count(input_str.begin(), input_str.end(), ' ')) + 1;
 
   // init array
-  if (arr) delete arr;
   arr = new RealNumType[static_cast<unsigned long>(number_count)];
 
   // parse rates
@@ -575,9 +574,6 @@ cmaple::Params::Params() {
   overwrite_output = false;
   threshold_prob = 1e-8;
   mutation_update_period = 25;
-  min_taxa_parallel_placement = 1000;
-  num_samples_per_thread = 5;
-  upward_search_extension = 5;
   failure_limit_sample = 5;
   failure_limit_subtree = 4;
   failure_limit_subtree_short_search = 1;
@@ -590,7 +586,6 @@ cmaple::Params::Params() {
   thresh_log_lh_failure = 0.01;
   min_blength_factor = 0.2;
   min_blength_mid_factor = 4.1;
-  blength_scaling_factor = 1.0;
   max_blength_factor = 40;
   thresh_diff_update = 1e-7;
   thresh_diff_fold_update = 1.001;
@@ -618,7 +613,6 @@ cmaple::Params::Params() {
   make_consistent = false;
   print_internal_ids = false;
   output_NEXUS = false;
-  output_MAT = false;
   ignore_input_annotations = false;
   allow_rerooting = true;
   compute_SPRTA = false;
@@ -627,17 +621,6 @@ cmaple::Params::Params() {
   output_alternative_spr = false;
   min_support_alt_branches = 0.01;
   thresh_loglh_optimal_diff_fac = 1.0;
-  rate_variation = false;
-  site_specific_rate_matrix = false;
-  rate_variation_max_num_EM_steps = 20;
-  estimate_rates_during_SPR = false;
-  wt_pseudocount = 0.1;
-  rates_filename = "";
-  min_desc_ref = 50;
-  min_mut_ref = 2;
-  local_refs = true;
-  deep_long_bl_search = false;
-  deep_long_bl_search_thresh = 0;
 
   // initialize random seed based on current time
   struct timeval tv;
@@ -753,39 +736,6 @@ auto cmaple::ParamsBuilder::withStopTreeSearchThresh(
   return *this;
 }
 
-auto cmaple::ParamsBuilder::withComputeSPRTA(
-    const bool& compute_SPRTA) -> cmaple::ParamsBuilder& {
-    params_ptr->compute_SPRTA = compute_SPRTA;
-    
-    // return
-    return *this;
-}
-
-auto cmaple::ParamsBuilder::withComputeSPRTAZeroBranches(
-    const bool& compute_zero_branches) -> cmaple::ParamsBuilder& {
-    params_ptr->compute_SPRTA_zero_length_branches = compute_zero_branches;
-    params_ptr->print_SPRTA_less_info_seqs = compute_zero_branches;
-    
-    // return
-    return *this;
-}
-
-auto cmaple::ParamsBuilder::withOutAlterSPR(
-    const bool& out_alter_spr) -> cmaple::ParamsBuilder& {
-    params_ptr->output_alternative_spr = out_alter_spr;
-    
-    // return
-    return *this;
-}
-
-auto cmaple::ParamsBuilder::withLocalRef(
-    const bool& use_local_ref) -> cmaple::ParamsBuilder& {
-    params_ptr->local_refs = use_local_ref;
-    
-    // return
-    return *this;
-}
-
 std::unique_ptr<cmaple::Params> cmaple::ParamsBuilder::build() {
   return std::move(params_ptr);
 }
@@ -864,13 +814,6 @@ void cmaple::parseArg(int argc, char* argv[], Params& params) {
               strcmp(argv[cnt], "-out-nexus") == 0) {
 
             params.output_NEXUS = true;
-
-            continue;
-        }
-        if (strcmp(argv[cnt], "--estimate-MAT") == 0 ||
-              strcmp(argv[cnt], "-estimate-MAT") == 0) {
-
-            params.output_MAT = true;
 
             continue;
         }
@@ -1134,54 +1077,6 @@ void cmaple::parseArg(int argc, char* argv[], Params& params) {
 
         continue;
       }
-        if (strcmp(argv[cnt], "--min-taxa-parallel") == 0 ||
-            strcmp(argv[cnt], "-min-taxa-parallel") == 0) {
-          ++cnt;
-
-          try {
-              params.min_taxa_parallel_placement = convert_int(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.min_taxa_parallel_placement <= 0) {
-            outError("<NUMBER> must be positive!");
-          }
-
-          continue;
-        }
-        if (strcmp(argv[cnt], "--samples-per-thread") == 0 ||
-            strcmp(argv[cnt], "-samples-per-thread") == 0) {
-          ++cnt;
-
-          try {
-              params.num_samples_per_thread = convert_int(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.num_samples_per_thread <= 0) {
-            outError("<NUMBER> must be positive!");
-          }
-
-          continue;
-        }
-        if (strcmp(argv[cnt], "--upward-search-extend") == 0 ||
-            strcmp(argv[cnt], "-upward-search-extend") == 0) {
-          ++cnt;
-
-          try {
-              params.upward_search_extension = convert_int(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.upward_search_extension < 0) {
-            outError("<NUMBER> must be non-negative!");
-          }
-
-          continue;
-        }
       if (strcmp(argv[cnt], "--failure-limit") == 0 ||
           strcmp(argv[cnt], "-fail-limit") == 0) {
         ++cnt;
@@ -1250,48 +1145,6 @@ void cmaple::parseArg(int argc, char* argv[], Params& params) {
 
         continue;
       }
-        if (strcmp(argv[cnt], "--min-desc-ref") == 0 ||
-            strcmp(argv[cnt], "-min-desc-ref") == 0) {
-          ++cnt;
-          if (cnt >= argc) {
-            outError("Use -min-desc-ref <NUM_DESCENDANTS>");
-          }
-
-          try {
-              params.min_desc_ref = convert_int(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.min_desc_ref <= 0) {
-            outError("<NUM_DESCENDANTS> must be positive!");
-          }
-          continue;
-        }
-        if (strcmp(argv[cnt], "--min-mut-ref") == 0 ||
-            strcmp(argv[cnt], "-min-mut-ref") == 0) {
-          ++cnt;
-          if (cnt >= argc) {
-            outError("Use -min-mut-ref <NUM_MUTATIONS>");
-          }
-
-          try {
-              params.min_mut_ref = convert_int(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.min_mut_ref <= 0) {
-            outError("<NUM_MUTATIONS> must be positive!");
-          }
-          continue;
-        }
-        if (strcmp(argv[cnt], "--disable-local-ref") == 0 ||
-            strcmp(argv[cnt], "-disable-local-ref") == 0) {
-            params.local_refs = false;
-
-          continue;
-        }
       if (strcmp(argv[cnt], "--branch-support") == 0 ||
           strcmp(argv[cnt], "-branch-support") == 0
           || strcmp(argv[cnt], "--alrt") == 0
@@ -1412,104 +1265,6 @@ void cmaple::parseArg(int argc, char* argv[], Params& params) {
         }
         continue;
       }
-      if (strcmp(argv[cnt], "--rate-variation") == 0 ||
-          strcmp(argv[cnt], "-rv") == 0) {
-        params.rate_variation = true;
-        continue;
-      }
-      if (strcmp(argv[cnt], "--site-specific-rates") == 0 ||
-          strcmp(argv[cnt], "--site-specific-rate-matrix") == 0 ||
-          strcmp(argv[cnt], "--site-specific-matrix") == 0 ||
-          strcmp(argv[cnt], "-ssr") == 0) {
-        params.site_specific_rate_matrix = true;
-        continue;
-      }
-      if (strcmp(argv[cnt], "--site-rate") == 0) {
-        cnt++;
-        if (cnt >= argc) {
-          outError("Use --site-rate NONE|SCALAR|MATRIX");
-        }
-        std::string site_rate_val(argv[cnt]);
-        std::transform(site_rate_val.begin(), site_rate_val.end(),
-                       site_rate_val.begin(), ::toupper);
-        if (site_rate_val == "NONE") {
-          params.rate_variation = false;
-          params.site_specific_rate_matrix = false;
-        } else if (site_rate_val == "SCALAR") {
-          params.rate_variation = true;
-        } else if (site_rate_val == "MATRIX") {
-          params.site_specific_rate_matrix = true;
-        } else {
-          outError("Invalid value for --site-rate. Use NONE, SCALAR, or MATRIX.");
-        }
-        continue;
-      }
-
-      if (strcmp(argv[cnt], "--waiting-time-pseudocount") == 0) {
-        cnt++;
-        if (cnt >= argc) {
-          outError("Use --waiting-time-pseudocount <pseudocount>");
-        }
-        try {
-          params.wt_pseudocount = convert_real_number(argv[cnt]);
-        } catch (std::invalid_argument e) {
-          outError(e.what());
-        }
-        continue;
-      }
-
-      if (strcmp(argv[cnt], "--rv-max-EM-steps") == 0) {
-        cnt++;
-        if (cnt >= argc) {
-          outError("Use --rv-max-EM-steps <num_steps>");
-        }
-        try {
-          params.rate_variation_max_num_EM_steps = convert_int(argv[cnt]);
-        } catch (std::invalid_argument e) {
-          outError(e.what());
-        }
-        continue;
-      }
-
-      if (strcmp(argv[cnt], "--estimate-rates-during-SPR") == 0) {
-        params.estimate_rates_during_SPR = true;
-        continue;
-      }
-
-      if (strcmp(argv[cnt], "--rates-filename") == 0) {
-        cnt++;
-        if (cnt >= argc) {
-          outError("Use --rates-filename <filename>");
-        }
-        params.rates_filename = argv[cnt];
-        continue;
-      }
-
-      if (strcmp(argv[cnt], "--blength-scale-factor") == 0 ||
-            strcmp(argv[cnt], "-blength-scale-factor") == 0) {
-          ++cnt;
-          if (cnt >= argc || argv[cnt][0] == '-') {
-            outError("Use --blength-scale-factor <NUM>");
-          }
-
-          try {
-            params.blength_scaling_factor = convert_real_number(argv[cnt]);
-          } catch (std::invalid_argument e) {
-            outError(e.what());
-          }
-
-          if (params.blength_scaling_factor  <= 0) {
-            outError("The branch length scaling factor MUST be positive!");
-          }
-
-          continue;
-      }
-
-      if (strcmp(argv[cnt], "--deep-long-bl-search") == 0 ||
-          strcmp(argv[cnt], "-deep-long-bl-search") == 0) {
-        params.deep_long_bl_search = true;
-        continue;
-      }
 
       // return invalid option
       string err = "Invalid \"";
@@ -1539,28 +1294,25 @@ void cmaple::parseArg(int argc, char* argv[], Params& params) {
     outError("Please supply an alignment file via -aln <ALN_FILENAME>");
   }
     
-  // check dependent options
-  if (params.compute_SPRTA_zero_length_branches && !params.compute_SPRTA)
-  {
-      outError("Unable to compute SPRTA supports for branches with a length "
-                "of zero if SPRTA is not computed. Please use "
-                "`--sprta` if you want to compute SPRTA.");
-  }
-  if (params.print_SPRTA_less_info_seqs && !params.compute_SPRTA)
-  {
-      outError("Unable to print SPRTA supports for less-informative "
-                "sequences if SPRTA is not computed. Please use "
-                "`--sprta` if you want to compute SPRTA.");
-  }
-  if (params.output_alternative_spr && !params.compute_SPRTA)
-  {
-      outError("Unable to output alternative SPRs "
-                "if SPRTA is not computed. Please use "
-                "`--sprta` if you want to compute SPRTA.");
-  }
-  if(params.rate_variation && params.site_specific_rate_matrix) {
-      outError("Unable to use both site-specific rates and site-specific matrices.");
-  }
+    // check dependent options
+    if (params.compute_SPRTA_zero_length_branches && !params.compute_SPRTA)
+    {
+        outError("Unable to compute SPRTA supports for branches with a length "
+                 "of zero if SPRTA is not computed. Please use "
+                 "`--sprta` if you want to compute SPRTA.");
+    }
+    if (params.print_SPRTA_less_info_seqs && !params.compute_SPRTA)
+    {
+        outError("Unable to print SPRTA supports for less-informative "
+                 "sequences if SPRTA is not computed. Please use "
+                 "`--sprta` if you want to compute SPRTA.");
+    }
+    if (params.output_alternative_spr && !params.compute_SPRTA)
+    {
+        outError("Unable to output alternative SPRs "
+                 "if SPRTA is not computed. Please use "
+                 "`--sprta` if you want to compute SPRTA.");
+    }
 }
 
 void cmaple::quickStartGuide() {
@@ -1580,19 +1332,15 @@ void cmaple::quickStartGuide() {
       << "3. Specify an input tree (e.g., tree.nwk):" << endl
       << "     cmaple -aln example.maple -t tree.nwk" << endl
       << endl
-      << "4. Use multiple CPU cores to speed up the analyses:"
-      << endl
-      << "     cmaple -aln example.maple -nt 4" << endl
-      << endl
-      << "5. Assess branch supports with aLRT-SH:"
+      << "4. Assess branch supports with aLRT-SH (with, e.g., 4 threads):"
       << endl
       << "     cmaple -aln example.maple --alrt -nt 4" << endl
       << endl
-      << "6. Assess branch supports with SPRTA scores:"
+      << "5. Assess branch supports with SPRTA scores:"
       << endl
-      << "     cmaple -aln example.maple --sprta -nt 4" << endl
+      << "     cmaple -aln example.maple --sprta" << endl
       << endl
-      << "7. Convert an alignment (aln.phy) to a different format (e.g., "
+      << "6. Convert an alignment (aln.phy) to a different format (e.g., "
          "FASTA format):"
       << endl
       << "     cmaple -aln aln.phy --out-aln aln.fa --out-format FASTA" << endl
@@ -1632,14 +1380,9 @@ void cmaple::usage_cmaple() {
       << endl
       << "  --shallow-search     Perform a shallow tree search" << endl
       << "                       before a deeper tree search." << endl
-      << "  -nt <NUM_THREADS>    Set the number of threads. Use `-nt AUTO` "
-      << endl
-      << "                       to employ all available CPU cores." << endl
       << "  --prefix <PREFIX>    Specify a prefix for all output files." << endl
       << "  --replace-intree     Allow CMAPLE to replace the input tree" << endl
       << "                       when computing branch supports." << endl
-      << "  --disable-local-ref  Use a global reference instead of" << endl
-      << "                       multiple local references." << endl
       << "  --out-mul-tree       Output the tree in multifurcating format."
       << endl
       << "  --out-internal       Output IDs of internal nodes."
@@ -1662,9 +1405,6 @@ void cmaple::usage_cmaple() {
       << "  --mean-subs <NUM>    Specify the mean #substitutions per site" << endl
       << "                       that CMAPLE is effective. Default: 0.02."
       << endl
-      << "  --estimate-MAT       Write a mutation-annotated tree (MAT) to " << endl
-      << "                       nexus file."
-      << endl
       << "  --seed <NUM>         Set a seed number for random generators."
       << endl
       << "  -v <MODE>            Set the verbose mode "
@@ -1678,6 +1418,10 @@ void cmaple::usage_cmaple() {
       << "                       branch supports (aLRT-SH)." << endl
       << "  --epsilon <NUM>      Set the epsilon value for computing" << endl
       << "                       branch supports (aLRT-SH)." << endl
+      << "  -nt <NUM_THREADS>    Set the number of threads for computing"
+      << endl
+      << "                       branch supports. Use `-nt AUTO` " << endl
+      << "                       to employ all available CPU cores." << endl
       << endl
       << "ASSESSING SPRTA BRANCH SUPPORTS:" << endl
       << "  --sprta               Compute SPRTA supports."
@@ -1694,17 +1438,6 @@ void cmaple::usage_cmaple() {
       << endl
       << "                        alternative SPRs."
       << endl
-      << "RATE VARIATION MODELS:" << endl
-      << "  --site-rate NONE|SCALAR|MATRIX    Specify site rate variation model." << endl
-      << "                                    NONE for no rate variation;" << endl
-      << "                                    SCALAR for site-specific scalar rates; " << endl
-      << "                                    MATRIX for site-specific exchangeability matrices." << endl
-      << "  --estimate-rates-during-SPR       Re-estimate rates after every SPR tree traversal " << endl
-      << "                                    (default: only after initial tree construction)." << endl
-      << "  --waiting-time-pseudocount <NUM>  Set the waiting-time pseudocount (default: 1)." << endl
-      << "  --rv-max-EM-steps <NUM>.          Maximum number of steps to attempt for EM " << endl
-      << "                                    convergence when estimating rates with " << endl
-      << "                                    --site-rate MATRIX (default: 20)." << endl
       << endl;
 
   exit(0);
@@ -1771,34 +1504,3 @@ void cmaple::resetStream(std::istream& instream) {
   instream.clear();
   instream.seekg(0, ios::beg);
 }
-
-/** Print a demangled stack backtrace of the caller function to FILE* out. */
-
-#if  !defined(Backtrace_FOUND)
-
-// donothing for WIN32
-void cmaple::print_backtrace(ostream &out, unsigned int max_frames) {}
-
-#else
-
-void cmaple::print_backtrace(ostream &out, unsigned int max_frames)
-{
-#ifdef _OPENMP
-#pragma omp critical
-{
-#endif
-    out << "STACK TRACE FOR DEBUGGING:" << endl;
-
-    const size_t stack_depth = 100;
-    void* array[stack_depth];
-    size_t size = backtrace(array, stack_depth);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    _exit(1);
-    
-#ifdef _OPENMP
-}
-#endif
-
-}
-
-#endif // Backtrace_FOUND

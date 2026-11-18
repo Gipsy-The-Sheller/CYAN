@@ -36,7 +36,6 @@ cmake_args=(
   -G Ninja
   -DCMAKE_BUILD_TYPE=Release
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-  -DBoost_NO_BOOST_CMAKE=ON
 )
 flags=()
 
@@ -44,6 +43,7 @@ case "$CYAN_PLATFORM" in
   windows)
     # Override the GCC default from common.sh. The Clang branch in IQ-TREE's
     # CMake does not add "novx" on Windows, so kernelavx/kernelfma are built.
+    : "${MINGW_PREFIX:=/mingw64}"
     CC=clang
     CXX=clang++
     export CC CXX
@@ -51,6 +51,8 @@ case "$CYAN_PLATFORM" in
     cmake_args+=(
       -DCMAKE_C_COMPILER="$CC"
       -DCMAKE_CXX_COMPILER="$CXX"
+      -DCMAKE_PREFIX_PATH="$MINGW_PREFIX"
+      -DBOOST_ROOT="$MINGW_PREFIX"
       -DBoost_INCLUDE_DIR="$MINGW_PREFIX/include"
       -DEIGEN3_INCLUDE_DIR="$MINGW_PREFIX/include/eigen3"
     )

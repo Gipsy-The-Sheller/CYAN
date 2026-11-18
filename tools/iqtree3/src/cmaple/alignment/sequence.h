@@ -51,7 +51,7 @@ class Sequence : public std::vector<Mutation> {
    operations
    */
   std::unique_ptr<SeqRegions> getLowerLhVector(
-      const std::vector<cmaple::StateType>& ref_seq,
+      const cmaple::PositionType sequence_length,
       const cmaple::StateType num_states,
       const cmaple::SeqRegion::SeqType seq_type);
 };

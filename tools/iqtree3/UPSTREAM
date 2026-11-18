@@ -7,7 +7,7 @@ license=GPL-2.0
 
 # Vendored submodules (src/cmaple and src/lsd2)
 cmaple.url=https://github.com/trongnhanuit/cmaple
-cmaple.commit=3d45b1ab68e2d68a2825bf17a531e22200578cd6
+cmaple.commit=46f86a9d9e3ece6e4f1a54dc72325e8afeb88738
 cmaple.license=GPL-2.0
 lsd2.url=https://github.com/tothuhien/lsd2
 lsd2.commit=c61110f3a4fa05325b45c97b2134792ff9d55d4c

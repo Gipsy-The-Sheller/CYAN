@@ -88,12 +88,6 @@ void cmaple::Alignment::read(std::istream& aln_stream,
       }
       readMaple(aln_stream);
     }
-      
-    // print alignment information
-      if (cmaple::verbose_mode >= cmaple::VB_MED) {
-          cout << "- Number of sequences: " <<  data.size() << endl;
-          cout << "- Sequence length: " <<  ref_seq.size() << endl;
-      }
 
     // sort sequences by their distances to the reference sequence
     sortSeqsByDistances();
@@ -615,9 +609,9 @@ void cmaple::Alignment::addMutation(Sequence* sequence,
     
   // add the mutation into sequence
   if (length == -1) {
-    sequence->emplace_back(convertChar2State(state_char), pos, TYPE_N);
+    sequence->emplace_back(convertChar2State(state_char), pos);
   } else {
-    sequence->emplace_back(convertChar2State(state_char), pos, length, TYPE_N);
+    sequence->emplace_back(convertChar2State(state_char), pos, length);
   }
 }
 
@@ -858,7 +852,6 @@ void cmaple::Alignment::readMaple(std::istream& aln_stream) {
       // Read new sequence name
       string::size_type pos = line.find_first_of("\n\r");
       seq_name = line.substr(1, pos - 1);
-      renameString(seq_name);
       if (!seq_name.length()) {
         throw std::logic_error("Empty sequence name found at line " +
                                convertIntToString(line_num) +
@@ -925,7 +918,7 @@ void cmaple::Alignment::readMaple(std::istream& aln_stream) {
 
       // add a new mutation into mutations
       if (state == TYPE_N || state == TYPE_DEL) {
-        mutations.emplace_back(state, pos - 1, length, TYPE_N);
+        mutations.emplace_back(state, pos - 1, length);
       } else {
         StateType refState = ref_seq[pos - 1];
         if(refState == state)
@@ -935,7 +928,7 @@ void cmaple::Alignment::readMaple(std::istream& aln_stream) {
                 " in sequence " + seq_name + 
                 " is equal to reference nucleotide. Check reference and alignment are correct.");
         }
-        mutations.emplace_back(state, pos - 1, TYPE_N);
+        mutations.emplace_back(state, pos - 1);
       }
     }
   }

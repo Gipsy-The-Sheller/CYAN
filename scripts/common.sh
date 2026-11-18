@@ -134,13 +134,19 @@ die() {
   exit 1
 }
 
-# True when tools/<name>/SUPPORTED_PLATFORMS lists the current target.
-# A missing file means the tool supports every target.
+# True when tools/<name>/SUPPORTED_PLATFORMS lists the current target and,
+# on Windows, REQUIRES_MSYSTEM (if present) contains the active MSYS2
+# environment. A missing file means no restriction.
 cyan_tool_supported() {
   local dir="$1"
   local target="${CYAN_PLATFORM}-${CYAN_ARCH}"
-  [[ -f "$dir/SUPPORTED_PLATFORMS" ]] || return 0
-  tr -d '\r' < "$dir/SUPPORTED_PLATFORMS" | grep -qx "$target"
+  if [[ -f "$dir/SUPPORTED_PLATFORMS" ]]; then
+    tr -d '\r' < "$dir/SUPPORTED_PLATFORMS" | grep -qx "$target" || return 1
+  fi
+  if [[ "$CYAN_PLATFORM" == windows && -f "$dir/REQUIRES_MSYSTEM" ]]; then
+    tr -d '\r' < "$dir/REQUIRES_MSYSTEM" | grep -qx "${MSYSTEM:-}" || return 1
+  fi
+  return 0
 }
 
 # Print the build.sh or smoke.sh paths selected by CYAN_TOOLS.

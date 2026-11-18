@@ -55,10 +55,6 @@ jobs:
           cache: true
           install: >-
             mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-clang
-            mingw-w64-x86_64-llvm-openmp
-            mingw-w64-x86_64-boost
-            mingw-w64-x86_64-eigen3
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             make
@@ -90,6 +86,50 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cyan-windows-x64
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: warn
+
+  windows-x64-clang:
+    name: Windows x64 (Clang)
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'windows-x64'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      CYAN_ARCH: x64
+      CYAN_TOOLS: iqtree3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANG64
+          update: true
+          cache: true
+          install: >-
+            mingw-w64-clang-x86_64-toolchain
+            mingw-w64-clang-x86_64-cmake
+            mingw-w64-clang-x86_64-ninja
+            mingw-w64-clang-x86_64-boost
+            mingw-w64-clang-x86_64-eigen3
+            make
+            patch
+            zip
+
+      - name: Build
+        run: bash scripts/build_all.sh
+
+      - name: Smoke test
+        run: bash scripts/smoke_all.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cyan-windows-x64-clang
           path: |
             dist/*.zip
             dist/*.tar.gz
@@ -238,6 +278,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') && (github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all')
     needs:
       - windows-x64
+      - windows-x64-clang
       - windows-arm64
       - linux-x64
       - linux-arm64

@@ -8,19 +8,17 @@
 #include "mutation.h"
 using namespace cmaple;
 
-cmaple::Mutation::Mutation(StateType n_type, PositionType n_position, cmaple::StateType n_prev_state)
+cmaple::Mutation::Mutation(StateType n_type, PositionType n_position)
     : type(n_type),
-    position(n_position),
-    prev_state(n_prev_state)
+    position(n_position)
 {
     // do nothing else
 }
 
-cmaple::Mutation::Mutation(StateType n_type, PositionType n_position, LengthTypeLarge n_length, cmaple::StateType n_prev_state)
+cmaple::Mutation::Mutation(StateType n_type, PositionType n_position, LengthTypeLarge n_length)
  : type(n_type),
    position(n_position),
-   length_(n_length),
-   prev_state(n_prev_state)
+   length_(n_length)
 {
   assert(n_length > 0);
   assert(n_position >= 0);
@@ -32,9 +30,8 @@ cmaple::Mutation::Mutation(StateType n_type, PositionType n_position, LengthType
   }
   if (n_length > (std::numeric_limits<LengthType>::max)()) {
     throw std::invalid_argument(
-        "The sequence is longer than the maximum supported by the current build."
-        " Recompile CMAPLE with a larger `LengthType` to handle longer sequences"
-        " (will increase memory use).");
+        "Invalid mutation. Length is larger than 2^15. Recompile with larger "
+        "'LengthType' at the cost of higher memory consumption.");
   }
 }
 

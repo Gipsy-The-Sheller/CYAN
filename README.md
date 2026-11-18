@@ -162,12 +162,13 @@ with BEAGLE threading per instance.
 
 IQ-TREE is vendored from tag `v3.0.1` (`d89ce07…`) together with its
 `cmaple` and `lsd2` submodules. The Windows build deliberately uses MSYS2
-**Clang**, not GCC. IQ-TREE's CMake appends `novx` to `IQTREE_FLAGS` for GCC
-on Windows (its comment cites GCC memory-alignment problems); `novx` caps the
-runtime at SSE4.2 and drops the AVX/FMA kernels. Clang does not take that
-branch, which matches the official Windows binaries. On x86_64 the smoke test
-requires the `Kernel:` line to contain `AVX`; a GCC build would fail it with
-`Kernel: SSE2`.
+**CLANG64**, not the MINGW64/GCC job. IQ-TREE's CMake appends `novx` to
+`IQTREE_FLAGS` for GCC on Windows (its comment cites GCC memory-alignment
+problems); `novx` caps the runtime at SSE4.2 and drops the AVX/FMA kernels.
+Clang does not take that branch, which matches the official Windows binaries.
+The CLANG64 job is selected by `tools/iqtree3/REQUIRES_MSYSTEM`, so the
+MINGW64 job skips IQ-TREE. On x86_64 the smoke test requires the `Kernel:`
+line to contain `AVX`; a GCC build would fail it with `Kernel: SSE2`.
 
 CMAPLE is disabled on Windows by upstream; it is built on Linux and macOS.
 Windows arm64 is intentionally absent: upstream ships no Windows ARM64 build

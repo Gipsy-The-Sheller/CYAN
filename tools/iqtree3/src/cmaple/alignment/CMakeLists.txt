@@ -3,7 +3,6 @@ add_library(cmaple_alignment
 mutation.h mutation.cpp
 seqregion.h seqregion.cpp
 seqregions.h seqregions.cpp
-seqregionsmem.h seqregionsmem.cpp
 sequence.h sequence.cpp
 alignment.h alignment.cpp
 )
@@ -16,7 +15,6 @@ if (USE_CMAPLE_AA)
     mutation.h mutation.cpp
     seqregion.h seqregion.cpp
     seqregions.h seqregions.cpp
-    seqregionsmem.h seqregionsmem.cpp
     sequence.h sequence.cpp
     alignment.h alignment.cpp
     )
