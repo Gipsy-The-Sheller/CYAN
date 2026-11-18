@@ -77,30 +77,58 @@ cp "$TOOL_DIR/LICENSE" "$TOOL_DIR/README.md" "$TOOL_DIR/VERSION" \
 
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   mpiexec="$(cyan_mpiexec)"
+  mpi_bin_dir=""
   if [[ -n "$mpiexec" ]]; then
-    cp "$mpiexec" "$stage/"
+    mpi_bin_dir="$(dirname "$mpiexec")"
+    cp "$mpiexec" "$stage/mpiexec.exe"
+    cp "$mpiexec" "$stage/mpirun.exe"
   else
     log "warning: mpiexec.exe not found; the package needs an MS-MPI runtime"
   fi
+  for name in smpd.exe msmpilaunchsvc.exe; do
+    if [[ -n "$mpi_bin_dir" && -f "$mpi_bin_dir/$name" ]]; then
+      cp "$mpi_bin_dir/$name" "$stage/"
+    fi
+  done
+  for candidate in \
+    "/c/Windows/System32/msmpi.dll" \
+    "/c/Windows/SysWOW64/msmpi.dll" \
+    "$mpi_bin_dir/msmpi.dll"; do
+    if [[ -n "$candidate" && -f "$candidate" ]]; then
+      cp "$candidate" "$stage/msmpi.dll"
+      break
+    fi
+  done
+  for candidate in \
+    "$mpi_bin_dir/../Redist/MSMpiSetup.exe" \
+    "/c/Program Files/Microsoft MPI/Redist/MSMpiSetup.exe" \
+    "/d/Program Files/Microsoft MPI/Redist/MSMpiSetup.exe"; do
+    if [[ -n "$candidate" && -f "$candidate" ]]; then
+      cp "$candidate" "$stage/MSMpiSetup.exe"
+      break
+    fi
+  done
   mpi_license="$(cyan_msmpi_license)"
   if [[ -n "$mpi_license" ]]; then
     cp "$mpi_license" "$stage/MicrosoftMPI-Redistributable-EULA.rtf"
   fi
   cat > "$stage/MPI-RUNTIME.txt" <<'EOF'
-PhyloBayes-MPI for Windows x64 requires the Microsoft MPI runtime
-(msmpi.dll). The bundled mpiexec.exe is provided as a convenience.
-
-Install Microsoft MPI v10.1.1 runtime from:
-https://github.com/microsoft/Microsoft-MPI/releases/tag/v10.1.1
+PhyloBayes-MPI for Windows x64 bundles the Microsoft MPI launcher and
+runtime files: mpiexec.exe, mpirun.exe, msmpi.dll, smpd.exe and
+msmpilaunchsvc.exe. If Windows refuses the portable launcher, install the
+included MSMpiSetup.exe (Microsoft MPI v10.1.1) as administrator.
 
 Native Windows arm64 is not supported: Microsoft MPI publishes only x64
 SDK/runtime builds.
 EOF
 else
   cat > "$stage/MPI-RUNTIME.txt" <<'EOF'
-PhyloBayes-MPI links against the MPI implementation used at build time
-(OpenMPI on the CYAN builders). Keep a compatible mpiexec on PATH, or
-install OpenMPI/MPICH with development headers before compiling locally.
+This package bundles an OpenMPI runtime under mpi/ and launcher wrappers.
+Use ./mpiexec or ./mpirun. The pb_mpi, readpb_mpi, tracecomp, bpcomp and
+cvrep wrappers set OPAL_PREFIX and the library path for the bundled runtime.
+
+If the bundled runtime cannot start on this machine, install OpenMPI/MPICH
+and run the corresponding .bin executable with the system mpiexec instead.
 EOF
 fi
 
@@ -111,5 +139,12 @@ for prog in pb_mpi readpb_mpi tracecomp bpcomp cvrep; do
     "$STRIP" --strip-unneeded "$stage/$prog$CYAN_EXE" 2>/dev/null || true
   fi
 done
+
+if [[ "$CYAN_PLATFORM" != windows ]]; then
+  for prog in pb_mpi readpb_mpi tracecomp bpcomp cvrep; do
+    mv "$stage/$prog" "$stage/$prog.bin"
+  done
+  bash "$TOOL_DIR/bundle_mpi.sh" "$stage"
+fi
 
 bash "$CYAN_ROOT/scripts/package_tool.sh" "$tool" "$stage"

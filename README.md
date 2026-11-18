@@ -137,11 +137,22 @@ arm64 is not supported because Microsoft MPI has no ARM64 SDK.
 
 ### MPI runtime
 
-The PhyloBayes-MPI package links against the MPI implementation used at build
-time. The Windows package bundles `mpiexec.exe` and requires the Microsoft MPI
-v10.1.1 runtime (`msmpi.dll`) to be installed. The Linux and macOS packages
-expect a compatible OpenMPI `mpiexec` on `PATH`; install OpenMPI before use.
-Each package includes an `MPI-RUNTIME.txt` with the exact requirement.
+Each PhyloBayes-MPI package carries its own MPI launcher and runtime:
+
+- **Windows x64** — `mpiexec.exe`, `mpirun.exe`, `msmpi.dll`, `smpd.exe`,
+  `msmpilaunchsvc.exe`, the redistributable EULA and `MSMpiSetup.exe`.
+  If Windows refuses the portable launcher, install `MSMpiSetup.exe` as
+  administrator.
+- **Linux / macOS** — the OpenMPI installation used at build time is copied
+  under `mpi/`, together with shell wrappers `mpiexec` and `mpirun`. The
+  `pb_mpi`, `readpb_mpi`, `tracecomp`, `bpcomp` and `cvrep` launchers set
+  `OPAL_PREFIX`, `PRTE_PREFIX` and the library path for the bundled runtime;
+  the real executables are the corresponding `.bin` files. On macOS the
+  bundled dylibs are rewritten to `@rpath` and ad-hoc signed.
+
+Each package includes an `MPI-RUNTIME.txt` describing the exact launcher and
+fallback. If the bundled runtime cannot start on a particular machine, install
+OpenMPI/MS-MPI and run the `.bin` executable with the system `mpiexec`.
 
 ## Licensing
 
