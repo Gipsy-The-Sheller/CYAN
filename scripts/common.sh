@@ -130,6 +130,31 @@ die() {
   exit 1
 }
 
+# Print the build.sh or smoke.sh paths selected by CYAN_TOOLS.
+# CYAN_TOOLS accepts comma- or space-separated tool names; empty selects all.
+cyan_tool_scripts() {
+  local kind="${1:?usage: cyan_tool_scripts <build|smoke>}"
+  local filter="${CYAN_TOOLS:-}"
+  filter="${filter//,/ }"
+  local -a found=()
+
+  if [[ -n "${filter// /}" ]]; then
+    local name
+    for name in $filter; do
+      [[ -f "$CYAN_ROOT/tools/$name/$kind.sh" ]] \
+        || die "unknown tool or missing $kind.sh: $name"
+      found+=("$CYAN_ROOT/tools/$name/$kind.sh")
+    done
+  else
+    shopt -s nullglob
+    found=("$CYAN_ROOT"/tools/*/"$kind.sh")
+    shopt -u nullglob
+  fi
+
+  [[ ${#found[@]} -gt 0 ]] || die "no tools selected for $kind"
+  printf '%s\n' "${found[@]}"
+}
+
 sha256_file() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | awk '{print $1}'

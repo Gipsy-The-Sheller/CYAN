@@ -52,6 +52,23 @@ bash scripts/smoke_all.sh
 Build output goes to `build/`; packages go to `dist/`. Both directories are
 ignored by git.
 
+### Selective builds (debug)
+
+When the repository contains many tools, build only what you are changing:
+
+```bash
+CYAN_TOOLS=lsd2 bash scripts/build_all.sh
+CYAN_TOOLS=lsd2 bash scripts/smoke_all.sh
+```
+
+`CYAN_TOOLS` accepts comma- or space-separated names; an empty value builds
+everything.
+
+The same selection is available in GitHub Actions:
+**Actions → build → Run workflow**. Set `tools` (for example `lsd2`) and
+`platform` (or leave `all`). Push, pull-request and tag builds ignore these
+inputs and build every tool on every platform.
+
 ## Packages
 
 Each package is a single archive whose root is the tool name, so extracting it
