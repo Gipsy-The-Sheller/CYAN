@@ -44,6 +44,10 @@ if [[ "$CYAN_PLATFORM" == windows ]]; then
     cd "$src"
     patch -p1 --batch < "$TOOL_DIR/patches/iqtree3-mingw-clang.patch"
   )
+  # IQ-TREE bundles ELF libomp.a/libompstatic.a for its non-Windows builds.
+  # CMake adds -L<src>/lib on WIN32, so -lomp would pick the ELF archive and
+  # ld.lld rejects it. Remove them; CLANG64 supplies the COFF libomp.a.
+  rm -f "$src/lib/libomp.a" "$src/lib/libompstatic.a"
 fi
 
 cmake_args=(
