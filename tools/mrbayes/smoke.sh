@@ -27,6 +27,18 @@ version_out="$("$mb" -v 2>&1 | tr -d '\r')"
   || die "unexpected MrBayes version output"
 [[ "$version_out" == *"Beagle"* ]] \
   || die "MrBayes was built without BEAGLE support"
+[[ "$version_out" == *"MPI"* ]] \
+  || die "MrBayes was built without MPI support"
+
+mpiexec="$pkg/mpiexec.exe"
+[[ -x "$mpiexec" ]] || die "missing packaged mpiexec.exe: $mpiexec"
+[[ -f "$pkg/msmpi.dll" ]] || die "missing packaged msmpi.dll"
+mpi_version_out="$("$mpiexec" -n 2 "$mb" -v 2>&1 | tr -d '\r')" || {
+  printf '%s\n' "$mpi_version_out" >&2
+  die "MPI two-rank launch failed"
+}
+[[ "$mpi_version_out" == *"Version:   3.2.8"* ]] \
+  || die "MPI two-rank run did not report the version"
 
 smoke="$CYAN_BUILD/$tool/smoke"
 rm -rf "$smoke"

@@ -144,6 +144,12 @@ and cap BEAGLE CPU threads to the number of physical cores.
 `beaglethreadcount=99` (auto) is resolved to the physical core count;
 explicit values above that are capped, and smaller values are kept.
 
+The Windows build combines BEAGLE with MS-MPI: a small `mpicc` wrapper feeds
+`mpi.h` and `msmpi.lib` to MrBayes' `--with-mpi` configure step. The package
+bundles `mpiexec.exe`, `msmpi.dll`, `smpd.exe`, `msmpilaunchsvc.exe` and the
+MS-MPI installer, so multi-instance runs use `mpiexec -n N mb.exe input.nex`
+with BEAGLE threading per instance.
+
 ### BEAGLE CPU first
 
 CYAN builds the generic BEAGLE CPU plugin and the SSE plugin only; CUDA,

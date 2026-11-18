@@ -89,13 +89,30 @@ for item in src configure configure.ac aclocal.m4 autotools \
             doc testing; do
   cp -a "$TOOL_DIR/$item" "$mb_src/"
 done
+# MS-MPI is exposed through a small mpicc wrapper: MS-MPI ships mpi.h and
+# msmpi.lib but no compiler wrapper. The wrapper makes AX_PROG_CC_MPI's
+# MPI_Init and mpi.h checks succeed.
+msmpi_inc="$(cyan_msmpi_inc)"
+msmpi_lib="$(cyan_msmpi_lib)"
+[[ -f "$msmpi_inc/mpi.h" ]] || die "MS-MPI SDK mpi.h not found under $msmpi_inc"
+[[ -f "$msmpi_lib/msmpi.lib" ]] || die "MS-MPI SDK msmpi.lib not found under $msmpi_lib"
+mpi_wrap="$build/mpi-wrapper"
+mkdir -p "$mpi_wrap"
+{
+  printf '#!/bin/sh\n'
+  printf 'exec "%s" -I"%s" "$@" -L"%s" -lmsmpi\n' "$CC" "$msmpi_inc" "$msmpi_lib"
+} > "$mpi_wrap/mpicc"
+chmod +x "$mpi_wrap/mpicc"
+
 (
   cd "$mb_src"
   patch -p1 --batch < "$TOOL_DIR/patches/mrbayes-win-beagle.patch"
   patch -p1 --batch < "$TOOL_DIR/patches/mrbayes-beagle-thread-cap.patch"
+  CC="$mpi_wrap/mpicc" MPICC="$mpi_wrap/mpicc" \
   BEAGLE_CFLAGS="-I$beagle_prefix/include/libhmsbeagle-1" \
   BEAGLE_LIBS="-L$beagle_prefix/lib -lhmsbeagle" \
-  ./configure --with-beagle="$beagle_prefix" --disable-doc --with-readline=no
+  ./configure --with-mpi --with-beagle="$beagle_prefix" --disable-doc \
+              --disable-dependency-tracking --with-readline=no
 )
 make -C "$mb_src/src" -j"$CYAN_JOBS"
 
@@ -112,6 +129,39 @@ cp "$beagle_prefix/bin/libhmsbeagle64.dll" "$stage/"
 cp "$beagle_prefix/bin/$cpu_base" "$stage/"
 cp "$beagle_prefix/bin/$sse_base" "$stage/"
 
+# MS-MPI launcher and runtime files. mpiexec.exe is included so the package
+# can run multi-instance chains; MSMpiSetup.exe is the fallback installer.
+mpiexec="$(cyan_mpiexec)"
+if [[ -n "$mpiexec" ]]; then
+  mpi_bin_dir="$(dirname "$mpiexec")"
+  cp "$mpiexec" "$stage/mpiexec.exe"
+  cp "$mpiexec" "$stage/mpirun.exe"
+  for name in smpd.exe msmpilaunchsvc.exe; do
+    [[ -f "$mpi_bin_dir/$name" ]] && cp "$mpi_bin_dir/$name" "$stage/"
+  done
+  for dll in msmpi.dll msmpires.dll; do
+    for candidate in "/c/Windows/System32/$dll" "$mpi_bin_dir/$dll"; do
+      if [[ -f "$candidate" ]]; then
+        cp "$candidate" "$stage/$dll"
+        break
+      fi
+    done
+  done
+  for candidate in \
+    "$mpi_bin_dir/../Redist/MSMpiSetup.exe" \
+    "/c/Program Files/Microsoft MPI/Redist/MSMpiSetup.exe" \
+    "/d/Program Files/Microsoft MPI/Redist/MSMpiSetup.exe"; do
+    if [[ -f "$candidate" ]]; then
+      cp "$candidate" "$stage/MSMpiSetup.exe"
+      break
+    fi
+  done
+  mpi_license="$(cyan_msmpi_license)"
+  [[ -n "$mpi_license" ]] && cp "$mpi_license" "$stage/MicrosoftMPI-Redistributable-EULA.rtf"
+else
+  log "warning: mpiexec.exe not found; MPI runtime is not bundled"
+fi
+
 mingw_bin="$(dirname "$(command -v "$CC")")"
 for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
            libmcfgthread-2.dll; do
@@ -124,7 +174,11 @@ cp "$TOOL_DIR/COPYING" "$TOOL_DIR/NEWS" "$TOOL_DIR/README" \
    "$TOOL_DIR/VERSION" "$TOOL_DIR/Manual_MrBayes_v3.2.pdf" "$stage/"
 cp "$TOOL_DIR/beagle-lib/LICENSE" "$stage/BEAGLE-LICENSE"
 cat > "$stage/README-CYAN.txt" <<EOF
-MrBayes $version built with BEAGLE 4.0.0 (generic CPU and SSE/NEON plugins).
+MrBayes $version built with BEAGLE 4.0.0 (generic CPU and SSE/NEON plugins)
+and Microsoft MPI (MS-MPI).
+
+Multi-instance runs use the bundled MS-MPI launcher:
+    mpiexec -n 4 mb.exe input.nex
 
 BEAGLE CPU threading is enabled by default. "beaglethreadcount=99" (auto)
 is capped to the number of physical CPU cores; explicit values above that
@@ -132,8 +186,9 @@ are capped as well. To use fewer threads, set it in the mrbayes block:
     set beaglethreadcount=4;
 
 The BEAGLE CPU and SSE plugins use C++11 threading; the SSE plugin maps
-SSE2 intrinsics to NEON on ARM64. All runtime DLLs needed by
-mb.exe and BEAGLE are included in this directory.
+SSE2 intrinsics to NEON on ARM64. All runtime DLLs needed by mb.exe, BEAGLE
+and MS-MPI are included. If Windows refuses the portable launcher, install
+MSMpiSetup.exe as administrator.
 EOF
 
 if command -v "$STRIP" >/dev/null 2>&1; then
