@@ -44,6 +44,7 @@ repository itself contains source and build recipes, not compiled binaries.
       ├─ SUPPORTED_PLATFORMS     # Windows arm64 intentionally absent
       ├─ build.sh
       ├─ smoke.sh
+      ├─ bundle_mpi.sh          # relocatable OpenMPI runtime (Linux/macOS)
       ├─ sources/
       └─ pb_mpiManual1.9.pdf
 ```
