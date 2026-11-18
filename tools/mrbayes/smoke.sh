@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 #
-# Smoke-test the packaged MrBayes 3.2.8 + BEAGLE 4 build.
-#
-# Runs showbeagle and two fixed-seed MCMC chains with explicit BEAGLE thread
-# counts (1 and 4). The initial log likelihood must match, which catches
-# incorrect BEAGLE threading results.
+# Smoke-test the packaged MrBayes 3.2.8 + BEAGLE 4 build on every supported
+# platform. Runs showbeagle, an MPI two-rank version check, and two fixed-seed
+# MCMC chains with explicit BEAGLE thread counts (1 and 4). The initial log
+# likelihood must match, which catches incorrect BEAGLE threading results.
 
 set -euo pipefail
 
@@ -12,15 +11,22 @@ TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../scripts/common.sh
 source "$TOOL_DIR/../../scripts/common.sh"
 
-if [[ "$CYAN_PLATFORM" != windows || "$CYAN_ARCH" != x64 ]]; then
-  log "mrbayes: skipping smoke test on $CYAN_PLATFORM $CYAN_ARCH"
-  exit 0
-fi
-
 tool=mrbayes
 pkg="$CYAN_BUILD/stage/$tool"
-mb="$pkg/mb.exe"
-[[ -x "$mb" ]] || die "missing packaged mb.exe: $mb"
+mb="$pkg/mb$CYAN_EXE"
+mpiexec="$pkg/mpiexec$CYAN_EXE"
+[[ -x "$mb" ]] || die "missing packaged mb: $mb"
+[[ -x "$mpiexec" ]] || die "missing packaged mpiexec: $mpiexec"
+
+run_limited() {
+  local seconds="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$seconds" "$@"
+  else
+    "$@"
+  fi
+}
 
 version_out="$("$mb" -v 2>&1 | tr -d '\r')"
 [[ "$version_out" == *"Version:   3.2.8"* ]] \
@@ -30,10 +36,14 @@ version_out="$("$mb" -v 2>&1 | tr -d '\r')"
 [[ "$version_out" == *"MPI"* ]] \
   || die "MrBayes was built without MPI support"
 
-mpiexec="$pkg/mpiexec.exe"
-[[ -x "$mpiexec" ]] || die "missing packaged mpiexec.exe: $mpiexec"
-[[ -f "$pkg/msmpi.dll" ]] || die "missing packaged msmpi.dll"
-mpi_version_out="$("$mpiexec" -n 2 "$mb" -v 2>&1 | tr -d '\r')" || {
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  [[ -f "$pkg/msmpi.dll" ]] || die "missing packaged msmpi.dll"
+fi
+mpi_args=(-n 2)
+if [[ "$CYAN_PLATFORM" != windows && "$(id -u)" == 0 ]]; then
+  mpi_args=(--allow-run-as-root "${mpi_args[@]}")
+fi
+mpi_version_out="$("$mpiexec" "${mpi_args[@]}" "$mb" -v 2>&1 | tr -d '\r')" || {
   printf '%s\n' "$mpi_version_out" >&2
   die "MPI two-rank launch failed"
 }
@@ -56,7 +66,7 @@ end;
 EOF
 (
   cd "$smoke"
-  timeout 120 "$mb" show.nex > show.log 2>&1
+  run_limited 120 "$mb" show.nex > show.log 2>&1
 ) || {
   tail -n 40 "$smoke/show.log" >&2 || true
   die "showbeagle failed"
@@ -83,7 +93,7 @@ end;
 EOF
   (
     cd "$smoke"
-    timeout 180 "$mb" "run$threads.nex" > "run$threads.log" 2>&1
+    run_limited 180 "$mb" "run$threads.nex" > "run$threads.log" 2>&1
   ) || {
     tail -n 50 "$smoke/run$threads.log" >&2 || true
     die "MCMC with beaglethreadcount=$threads failed"

@@ -1,6 +1,6 @@
 --- a/src/mbbeagle.c
 +++ b/src/mbbeagle.c
-@@ -29,6 +29,10 @@
+@@ -29,6 +29,17 @@
   *
   */
  
@@ -8,15 +8,20 @@
 +#define _WIN32_WINNT 0x0601
 +#endif
 +
++#if !defined (_WIN32)
++#include <unistd.h>
++#if defined (__APPLE__)
++#include <sys/sysctl.h>
++#endif
++#endif
++
  #include "bayes.h"
  #include "mbbeagle.h"
  #include "mcmc.h"
-@@ -49,6 +53,58 @@
- 
- extern int *chainId;
+@@ -51,6 +62,71 @@
  extern int numLocalChains;
-+
-+
+ 
+ 
 +#if defined (WIN_VERSION)
 +/* Number of physical cores, used to cap BEAGLE CPU threads. */
 +static int MBGetPhysicalCoreCount (void)
@@ -61,24 +66,38 @@
 +    return cores;
 +}
 +#else
++/* Number of physical cores (macOS) or online logical CPUs (Linux), used to
++   cap BEAGLE CPU threads. */
 +static int MBGetPhysicalCoreCount (void)
 +{
++#if defined (__APPLE__)
++    int ncpu = 0;
++    size_t len = sizeof (ncpu);
++    if (sysctlbyname ("hw.physicalcpu", &ncpu, &len, NULL, 0) == 0 && ncpu > 0)
++        return ncpu;
++#endif
++#if defined (_SC_NPROCESSORS_ONLN)
++    long ncpu = sysconf (_SC_NPROCESSORS_ONLN);
++    if (ncpu > 0)
++        return (int) ncpu;
++#endif
 +    return 1;
 +}
 +#endif
 +
- 
- 
++
++
  #if defined (BEAGLE_ENABLED)
-@@ -381,9 +437,19 @@
+ /*------------------------------------------------------------------------
+ |
+@@ -381,9 +457,19 @@
              }
          }
      /* set max number of CPU threads to be used by BEAGLE with CPU implementation */
 -    if ((details.flags & BEAGLE_FLAG_FRAMEWORK_CPU) && beagleThreadCount > 1 && beagleThreadCount != 99)
--        {
--        beagleSetCPUThreadCount(beagleInstance, beagleThreadCount);
 +    if (details.flags & BEAGLE_FLAG_FRAMEWORK_CPU)
-+        {
+         {
+-        beagleSetCPUThreadCount(beagleInstance, beagleThreadCount);
 +        int mbCpuCores = MBGetPhysicalCoreCount ();
 +        if (mbCpuCores < 1)
 +            mbCpuCores = 1;

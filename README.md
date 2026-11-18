@@ -137,7 +137,7 @@ and cross-platform tools.
 | --- | --- | --- | --- | --- |
 | LSD2 | 2.4.4 | all five targets | [tothuhien/lsd2](https://github.com/tothuhien/lsd2) commit `c61110f` | GPL-2.0 |
 | PhyloBayes-MPI | 1.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bayesiancook/pbmpi](https://github.com/bayesiancook/pbmpi) tag `v1.9` | GPL-2.0 |
-| MrBayes | 3.2.8 | Windows x64 | [NBISweden/MrBayes](https://github.com/NBISweden/MrBayes) tag `v3.2.8` | GPL-3.0 |
+| MrBayes | 3.2.8 | Windows x64, Linux x64/arm64, macOS arm64 | [NBISweden/MrBayes](https://github.com/NBISweden/MrBayes) tag `v3.2.8` | GPL-3.0 |
 | IQ-TREE | 3.1.4 | Windows x64, Linux x64/arm64, macOS arm64 | [iqtree/iqtree3](https://github.com/iqtree/iqtree3) tag `v3.1.4` | GPL-2.0 |
 
 LSD2 is vendored unmodified from upstream commit
@@ -161,6 +161,12 @@ The Windows build combines BEAGLE with MS-MPI: a small `mpicc` wrapper feeds
 bundles `mpiexec.exe`, `msmpi.dll`, `smpd.exe`, `msmpilaunchsvc.exe` and the
 MS-MPI installer, so multi-instance runs use `mpiexec -n N mb.exe input.nex`
 with BEAGLE threading per instance.
+
+On Linux x64/arm64 and macOS arm64 the same BEAGLE CPU/SSE build is linked
+with OpenMPI. The package bundles OpenMPI and the BEAGLE runtime; `mb` is a
+wrapper that sets the BEAGLE/MPI paths and runs `mb.bin`:
+`./mpiexec -n 4 ./mb input.nex`. The BEAGLE SSE plugin maps SSE2 intrinsics to
+NEON on ARM64, and the CPU thread cap uses `sysconf`/`hw.physicalcpu` on Unix.
 
 ### IQ-TREE and AVX on Windows
 
@@ -191,7 +197,7 @@ and they avoid a large CUDA/OpenCL runtime dependency.
 
 ### MPI runtime
 
-Each PhyloBayes-MPI package carries its own MPI launcher and runtime:
+PhyloBayes-MPI and MrBayes packages carry their own MPI launcher and runtime:
 
 - **Windows x64** — `mpiexec.exe`, `mpirun.exe`, `msmpi.dll`, `smpd.exe`,
   `msmpilaunchsvc.exe`, the redistributable EULA and `MSMpiSetup.exe`.
@@ -199,14 +205,17 @@ Each PhyloBayes-MPI package carries its own MPI launcher and runtime:
   administrator.
 - **Linux / macOS** — the OpenMPI installation used at build time is copied
   under `mpi/`, together with shell wrappers `mpiexec` and `mpirun`. The
-  `pb_mpi`, `readpb_mpi`, `tracecomp`, `bpcomp` and `cvrep` launchers set
-  `OPAL_PREFIX`, `PRTE_PREFIX` and the library path for the bundled runtime;
-  the real executables are the corresponding `.bin` files. On macOS the
-  bundled dylibs are rewritten to `@rpath` and ad-hoc signed.
+  `pb_mpi`, `readpb_mpi`, `tracecomp`, `bpcomp` and `cvrep` launchers, and
+  MrBayes' `mb` wrapper, set `OPAL_PREFIX`, `PRTE_PREFIX` and the library
+  path for the bundled runtime; the real executables are the corresponding
+  `.bin` files. MrBayes' wrapper also sets `BEAGLE_LIBRARY_PATH` for the
+  bundled plugins. On macOS the bundled dylibs are rewritten to `@rpath` and
+  ad-hoc signed.
 
-Each package includes an `MPI-RUNTIME.txt` describing the exact launcher and
-fallback. If the bundled runtime cannot start on a particular machine, install
-OpenMPI/MS-MPI and run the `.bin` executable with the system `mpiexec`.
+PhyloBayes-MPI includes an `MPI-RUNTIME.txt` describing the exact launcher
+and fallback. If the bundled runtime cannot start on a particular machine,
+install OpenMPI/MS-MPI and run the `.bin` executable with the system
+`mpiexec`.
 
 ## Licensing
 

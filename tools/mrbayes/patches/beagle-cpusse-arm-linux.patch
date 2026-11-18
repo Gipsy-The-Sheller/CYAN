@@ -1,0 +1,20 @@
+--- a/libhmsbeagle/CPU/BeagleCPUSSEPlugin.cpp
++++ b/libhmsbeagle/CPU/BeagleCPUSSEPlugin.cpp
+@@ -97,6 +97,9 @@
+ 
+ #if defined(__GNUC__) && !defined(_WIN32)
+ #if !defined(DLS_MACOS) // For non-Mac OS X GNU C
++#if defined(__aarch64__) || defined(__ARM_NEON)
++bool check_sse2() { return 1; }
++#else
+ bool check_sse2()
+ {
+ #ifdef HAVE_CPUID_H
+@@ -158,6 +161,7 @@
+     return result[3] & 0x04000000;
+ #endif // HAVE_CPUID.H
+ }
++#endif // __aarch64__ || __ARM_NEON
+ #else // For Mac OS X GNU C
+ #if defined(__ARM64_ARCH_8__) || defined(__aarch64__)
+ bool check_sse2() { return 1; }
