@@ -37,16 +37,23 @@ repository itself contains source and build recipes, not compiled binaries.
    │  ├─ smoke.sh                # run a real example
    │  ├─ src/                    # vendored upstream source
    │  └─ examples/               # upstream example data
-   └─ pbmpi/
+   ├─ pbmpi/
+   │  ├─ VERSION
+   │  ├─ UPSTREAM
+   │  ├─ PACKAGE_DIR             # archive root (pbmpi-1.9)
+   │  ├─ SUPPORTED_PLATFORMS     # Windows arm64 intentionally absent
+   │  ├─ build.sh
+   │  ├─ smoke.sh
+   │  ├─ bundle_mpi.sh          # relocatable OpenMPI runtime (Linux/macOS)
+   │  ├─ sources/
+   │  └─ pb_mpiManual1.9.pdf
+   └─ iqtree3/
       ├─ VERSION
-      ├─ UPSTREAM
-      ├─ PACKAGE_DIR             # archive root (pbmpi-1.9)
+      ├─ UPSTREAM                # main + cmaple/lsd2 submodule commits
       ├─ SUPPORTED_PLATFORMS     # Windows arm64 intentionally absent
       ├─ build.sh
       ├─ smoke.sh
-      ├─ bundle_mpi.sh          # relocatable OpenMPI runtime (Linux/macOS)
-      ├─ sources/
-      └─ pb_mpiManual1.9.pdf
+      └─ src/                   # IQ-TREE 3.0.1 + cmaple + lsd2
 ```
 
 ## Build locally
@@ -127,6 +134,7 @@ and cross-platform tools.
 | LSD2 | 2.4.4 | all five targets | [tothuhien/lsd2](https://github.com/tothuhien/lsd2) commit `c61110f` | GPL-2.0 |
 | PhyloBayes-MPI | 1.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bayesiancook/pbmpi](https://github.com/bayesiancook/pbmpi) tag `v1.9` | GPL-2.0 |
 | MrBayes | 3.2.8 | Windows x64 | [NBISweden/MrBayes](https://github.com/NBISweden/MrBayes) tag `v3.2.8` | GPL-3.0 |
+| IQ-TREE | 3.0.1 | Windows x64, Linux x64/arm64, macOS arm64 | [iqtree/iqtree3](https://github.com/iqtree/iqtree3) tag `v3.0.1` | GPL-2.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -149,6 +157,21 @@ The Windows build combines BEAGLE with MS-MPI: a small `mpicc` wrapper feeds
 bundles `mpiexec.exe`, `msmpi.dll`, `smpd.exe`, `msmpilaunchsvc.exe` and the
 MS-MPI installer, so multi-instance runs use `mpiexec -n N mb.exe input.nex`
 with BEAGLE threading per instance.
+
+### IQ-TREE and AVX on Windows
+
+IQ-TREE is vendored from tag `v3.0.1` (`d89ce07…`) together with its
+`cmaple` and `lsd2` submodules. The Windows build deliberately uses MSYS2
+**Clang**, not GCC. IQ-TREE's CMake appends `novx` to `IQTREE_FLAGS` for GCC
+on Windows (its comment cites GCC memory-alignment problems); `novx` caps the
+runtime at SSE4.2 and drops the AVX/FMA kernels. Clang does not take that
+branch, which matches the official Windows binaries. On x86_64 the smoke test
+requires the `Kernel:` line to contain `AVX`; a GCC build would fail it with
+`Kernel: SSE2`.
+
+CMAPLE is disabled on Windows by upstream; it is built on Linux and macOS.
+Windows arm64 is intentionally absent: upstream ships no Windows ARM64 build
+and the ClangARM64/Rust combination has not been validated.
 
 ### BEAGLE CPU first
 

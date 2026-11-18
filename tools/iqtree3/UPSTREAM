@@ -1,0 +1,14 @@
+url=https://github.com/iqtree/iqtree3
+tag=v3.0.1
+commit=d89ce077a639f5c812a10a52c022456b4e10b23a
+commit_date=2025-05-05
+version=3.0.1
+license=GPL-2.0
+
+# Vendored submodules (src/cmaple and src/lsd2)
+cmaple.url=https://github.com/trongnhanuit/cmaple
+cmaple.commit=3d45b1ab68e2d68a2825bf17a531e22200578cd6
+cmaple.license=GPL-2.0
+lsd2.url=https://github.com/tothuhien/lsd2
+lsd2.commit=c61110f3a4fa05325b45c97b2134792ff9d55d4c
+lsd2.license=GPL-2.0

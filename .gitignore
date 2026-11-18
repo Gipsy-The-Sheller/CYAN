@@ -12,6 +12,14 @@ dist/
 *.lib
 *.pdb
 
+# IQ-TREE vendors prebuilt OpenMP/zlib runtimes for its static builds.
+!tools/iqtree3/src/lib/**
+!tools/iqtree3/src/lib32/**
+!tools/iqtree3/src/libmac/**
+!tools/iqtree3/src/libmac_m1/**
+!tools/iqtree3/src/liblinux_arm/**
+!tools/iqtree3/src/cmaple/libraries/static/**
+
 # Python and OS noise
 __pycache__/
 *.pyc
