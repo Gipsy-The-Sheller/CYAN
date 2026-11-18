@@ -30,16 +30,19 @@ stage="$CYAN_BUILD/stage/$tool"
 rm -rf "$build"
 mkdir -p "$cmake_build" "$stage"
 
-# IQ-TREE's pll/hardware.c calls the MSVC __cpuid intrinsic whenever WIN32 is
-# defined. MinGW/Clang does not declare it, so route non-MSVC builds through
-# the existing GCC inline-asm CPUID path. Apply the patch to a build copy to
-# keep the vendored upstream tree pristine.
+# MinGW/Clang needs two small fixes for IQ-TREE 3.0.1:
+#   * pll/hardware.c calls the MSVC __cpuid intrinsic whenever WIN32 is
+#     defined; route non-MSVC builds through the existing inline-asm path.
+#   * terraphast defines non-inline template operators in a .cpp and also
+#     explicitly instantiates them; Clang 23 rejects the duplicate
+#     definitions. Mark the free operators inline.
+# Apply the patch to a build copy to keep the vendored upstream tree pristine.
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   src="$build/src"
   cp -a "$TOOL_DIR/src" "$src"
   (
     cd "$src"
-    patch -p1 --batch < "$TOOL_DIR/patches/iqtree3-mingw-cpuid.patch"
+    patch -p1 --batch < "$TOOL_DIR/patches/iqtree3-mingw-clang.patch"
   )
 fi
 
