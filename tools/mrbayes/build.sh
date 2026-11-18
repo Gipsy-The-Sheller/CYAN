@@ -47,11 +47,10 @@ else
   (
     cd "$beagle_src"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cmake-examples.patch"
+    patch -p1 --batch < "$TOOL_DIR/patches/beagle-no-native.patch"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-neon.patch"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-arm-linux.patch"
-    # Distribution builds must not bake in the CI runner's native ISA.
-    sed -i 's/set(BEAGLE_OPTIMIZE_FOR_NATIVE_ARCH true)/set(BEAGLE_OPTIMIZE_FOR_NATIVE_ARCH false)/' \
-      CMakeLists.txt
+    patch -p1 --batch < "$TOOL_DIR/patches/beagle-sse-arm-types.patch"
   )
   [[ "$CYAN_ARCH" == x64 ]] && cmake_cxx_flags="-msse4.2"
 fi
@@ -139,7 +138,7 @@ if [[ "$CYAN_PLATFORM" == windows ]]; then
     CC="$mpi_wrap/mpicc" MPICC="$mpi_wrap/mpicc" \
     BEAGLE_CFLAGS="-I$beagle_include" \
     BEAGLE_LIBS="-L$beagle_prefix/lib -lhmsbeagle" \
-    ./configure --with-mpi --with-beagle="$beagle_prefix" --disable-doc \
+    bash ./configure --with-mpi --with-beagle="$beagle_prefix" --disable-doc \
                 --disable-dependency-tracking --with-readline=no
   )
   make -C "$mb_src/src" -j"$CYAN_JOBS"
@@ -153,7 +152,7 @@ else
     CC="$mpicc_bin" MPICC="$mpicc_bin" CXX="${mpicxx_bin:-$CXX}" \
     BEAGLE_CFLAGS="-I$beagle_include" \
     BEAGLE_LIBS="-L$beagle_prefix/lib -lhmsbeagle" \
-    ./configure --with-mpi --with-beagle="$beagle_prefix" --disable-doc \
+    bash ./configure --with-mpi --with-beagle="$beagle_prefix" --disable-doc \
                 --disable-dependency-tracking --with-readline=no
   )
   make -C "$mb_src/src" -j"$CYAN_JOBS"
