@@ -47,6 +47,7 @@ else
   (
     cd "$beagle_src"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cmake-examples.patch"
+    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpack-macos.patch"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-no-native.patch"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-neon.patch"
     patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-arm-linux.patch"
