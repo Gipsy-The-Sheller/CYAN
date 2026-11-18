@@ -33,9 +33,9 @@ mkdir -p "$cmake_build" "$stage"
 # MinGW/Clang needs two small fixes for IQ-TREE 3.0.1:
 #   * pll/hardware.c calls the MSVC __cpuid intrinsic whenever WIN32 is
 #     defined; route non-MSVC builds through the existing inline-asm path.
-#   * terraphast defines non-inline template operators in a .cpp and also
-#     explicitly instantiates them; Clang 23 rejects the duplicate
-#     definitions. Mark the free operators inline.
+#   * terraphast pins CXX_STANDARD 11; Clang 23 rejects the checked_uint
+#     operator definitions in C++11/14 mode (duplicate mangled names).
+#     Use C++17 for terraphast when building with Clang on Windows.
 # Apply the patch to a build copy to keep the vendored upstream tree pristine.
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   src="$build/src"

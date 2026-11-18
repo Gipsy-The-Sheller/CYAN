@@ -9,38 +9,20 @@
  	__int32 regs[4];
  	__cpuid((int*)regs, (int)op);
  	*eax = regs[0];
---- a/terraphast/lib/clamped_uint.cpp
-+++ b/terraphast/lib/clamped_uint.cpp
-@@ -57,27 +57,27 @@
- }
+--- a/terraphast/CMakeLists.txt
++++ b/terraphast/CMakeLists.txt
+@@ -192,7 +192,13 @@
+ 	set(terraces_targets ${terraces_targets} unittests)
+ endif()
  
- template <bool except>
--bool operator==(checked_uint<except> a, checked_uint<except> b) {
-+inline bool operator==(checked_uint<except> a, checked_uint<except> b) {
- 	return a.value() == b.value();
- }
+-set_target_properties(${terraces_targets} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
++if (WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++    # Clang 23 rejects the checked_uint operator definitions in C++11/14 mode
++    # (duplicate mangled names); C++17 compiles them correctly.
++    set_target_properties(${terraces_targets} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
++else()
++    set_target_properties(${terraces_targets} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
++endif()
  
- template <bool except>
--bool operator!=(checked_uint<except> a, checked_uint<except> b) {
-+inline bool operator!=(checked_uint<except> a, checked_uint<except> b) {
- 	return !(a == b);
- }
- 
- template <bool except>
--checked_uint<except> operator+(checked_uint<except> a, checked_uint<except> b) {
-+inline checked_uint<except> operator+(checked_uint<except> a, checked_uint<except> b) {
- 	return a += b;
- }
- 
- template <bool except>
--checked_uint<except> operator*(checked_uint<except> a, checked_uint<except> b) {
-+inline checked_uint<except> operator*(checked_uint<except> a, checked_uint<except> b) {
- 	return a *= b;
- }
- 
- template <bool except>
--std::ostream& operator<<(std::ostream& stream, checked_uint<except> val) {
-+inline std::ostream& operator<<(std::ostream& stream, checked_uint<except> val) {
- 	if (val.is_clamped()) {
- 		stream << ">= ";
- 	}
+ #####################################################################
+ # set platform-specific options, include platform-specific files
