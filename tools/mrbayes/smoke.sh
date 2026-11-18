@@ -54,6 +54,8 @@ grep -q 'BEAGLE version: 4\.0\.0' "$smoke/show.clean.log" \
   || die "BEAGLE 4.0.0 was not loaded"
 grep -q 'THREADING_CPP' "$smoke/show.clean.log" \
   || die "BEAGLE CPU threading was not reported"
+grep -q 'VECTOR_SSE' "$smoke/show.clean.log" \
+  || die "BEAGLE SSE/NEON plugin was not listed"
 
 # --- fixed-seed MCMC with 1 and 4 BEAGLE threads ---
 for threads in 1 4; do

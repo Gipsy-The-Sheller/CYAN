@@ -138,13 +138,20 @@ Microsoft MPI SDK and runtime; Linux and macOS builds use `mpicxx`. Windows
 arm64 is not supported because Microsoft MPI has no ARM64 SDK.
 
 MrBayes is vendored from tag `v3.2.8` (`1d9acf0…`) with BEAGLE 4.0.0
-(`1d4b21d…`). Three patches are applied: enable BEAGLE on `WIN_VERSION`,
-adapt BEAGLE's CMake/Windows loader for MinGW, and cap BEAGLE CPU threads to
-the number of physical cores. The generic BEAGLE CPU plugin is built; the SSE
-plugin is skipped because its Windows source has a duplicate `check_sse2`
-definition under MinGW. `beaglethreadcount=99` (auto) is resolved to the
-physical core count; explicit values above that are capped, and smaller
-values are kept.
+(`1d4b21d…`). Patches enable BEAGLE on `WIN_VERSION`, adapt BEAGLE's
+CMake/Windows loader for MinGW, fix the duplicate `check_sse2` definition,
+and cap BEAGLE CPU threads to the number of physical cores.
+`beaglethreadcount=99` (auto) is resolved to the physical core count;
+explicit values above that are capped, and smaller values are kept.
+
+### BEAGLE CPU first
+
+CYAN builds the generic BEAGLE CPU plugin and the SSE plugin only; CUDA,
+OpenCL and JNI are disabled. On x86_64 the SSE plugin is compiled with
+`-msse4.2`. On ARM64 the same SSE2 intrinsics map to NEON through BEAGLE's
+`sse2neon.h` (the ARM guards are extended to `__aarch64__`). GPU plugins are
+intentionally omitted: for laptop-sized datasets the CPU plugins are faster,
+and they avoid a large CUDA/OpenCL runtime dependency.
 
 ### MPI runtime
 

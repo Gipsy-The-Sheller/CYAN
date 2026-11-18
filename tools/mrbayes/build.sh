@@ -39,21 +39,29 @@ cp -a "$TOOL_DIR/beagle-lib" "$beagle_src"
   patch -p1 --batch < "$TOOL_DIR/patches/beagle-cmake-mingw.patch"
   patch -p1 --batch < "$TOOL_DIR/patches/beagle-winsharedlibrary-mingw.patch"
   patch -p1 --batch < "$TOOL_DIR/patches/beagle-winsharedlibrary-mingw-cpp.patch"
+  patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-neon.patch"
 )
 
+cmake_cxx_flags=""
+if [[ "$CYAN_ARCH" == x64 ]]; then
+  cmake_cxx_flags="-msse4.2"
+fi
 cmake -S "$beagle_src" -B "$beagle_build" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER="$CC" \
   -DCMAKE_CXX_COMPILER="$CXX" \
+  -DCMAKE_CXX_FLAGS="$cmake_cxx_flags" \
   -DBUILD_CUDA=OFF -DBUILD_OPENCL=OFF -DBUILD_JNI=OFF
-cmake --build "$beagle_build" --target hmsbeagle hmsbeagle-cpu \
+cmake --build "$beagle_build" --target hmsbeagle hmsbeagle-cpu hmsbeagle-cpu-sse \
   --parallel "$CYAN_JOBS"
 
 core_dll="$(find "$beagle_build" -name 'libhmsbeagle64.dll' | head -n 1)"
 cpu_dll="$(find "$beagle_build/libhmsbeagle/CPU" -name 'libhmsbeagle-cpu64-*.dll' | head -n 1)"
+sse_dll="$(find "$beagle_build/libhmsbeagle/CPU" -name 'libhmsbeagle-cpu-sse64-*.dll' | head -n 1)"
 import_lib="$(find "$beagle_build" -name 'libhmsbeagle.dll.a' | head -n 1)"
 [[ -n "$core_dll" && -f "$core_dll" ]] || die "BEAGLE core DLL not found"
 [[ -n "$cpu_dll" && -f "$cpu_dll" ]] || die "BEAGLE CPU plugin DLL not found"
+[[ -n "$sse_dll" && -f "$sse_dll" ]] || die "BEAGLE SSE plugin DLL not found"
 [[ -n "$import_lib" && -f "$import_lib" ]] || die "BEAGLE import library not found"
 
 mkdir -p "$beagle_prefix/include/libhmsbeagle-1/libhmsbeagle" \
@@ -67,6 +75,9 @@ cp "$core_dll" "$beagle_prefix/bin/libhmsbeagle64.dll"
 cpu_base="$(basename "$cpu_dll")"
 cpu_base="${cpu_base#lib}"
 cp "$cpu_dll" "$beagle_prefix/bin/$cpu_base"
+sse_base="$(basename "$sse_dll")"
+sse_base="${sse_base#lib}"
+cp "$sse_dll" "$beagle_prefix/bin/$sse_base"
 
 # ----------------------------------------------------------------------
 # MrBayes 3.2.8
@@ -99,6 +110,7 @@ mkdir -p "$stage"
 cp "$mb_src/src/mb.exe" "$stage/"
 cp "$beagle_prefix/bin/libhmsbeagle64.dll" "$stage/"
 cp "$beagle_prefix/bin/$cpu_base" "$stage/"
+cp "$beagle_prefix/bin/$sse_base" "$stage/"
 
 mingw_bin="$(dirname "$(command -v "$CC")")"
 for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll \
@@ -112,14 +124,15 @@ cp "$TOOL_DIR/COPYING" "$TOOL_DIR/NEWS" "$TOOL_DIR/README" \
    "$TOOL_DIR/VERSION" "$TOOL_DIR/Manual_MrBayes_v3.2.pdf" "$stage/"
 cp "$TOOL_DIR/beagle-lib/LICENSE" "$stage/BEAGLE-LICENSE"
 cat > "$stage/README-CYAN.txt" <<EOF
-MrBayes $version built with BEAGLE 4.0.0 (generic CPU plugin).
+MrBayes $version built with BEAGLE 4.0.0 (generic CPU and SSE/NEON plugins).
 
 BEAGLE CPU threading is enabled by default. "beaglethreadcount=99" (auto)
 is capped to the number of physical CPU cores; explicit values above that
 are capped as well. To use fewer threads, set it in the mrbayes block:
     set beaglethreadcount=4;
 
-The BEAGLE CPU plugin uses C++11 threading. All runtime DLLs needed by
+The BEAGLE CPU and SSE plugins use C++11 threading; the SSE plugin maps
+SSE2 intrinsics to NEON on ARM64. All runtime DLLs needed by
 mb.exe and BEAGLE are included in this directory.
 EOF
 
