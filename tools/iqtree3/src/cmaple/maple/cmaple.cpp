@@ -9,7 +9,9 @@ std::string cmaple::getVersion()
 
 std::string cmaple::getCitations()
 {
-    return "To be updated...";
+    return "Nhan Ly-Trong, Chris Bielow, Nicola De Maio, Bui Quang Minh (2024) "
+    "CMAPLE: Efficient phylogenetic inference in the pandemic era. "
+    "Mol. Biol. Evol., 41:msae134. https://doi.org/10.1093/molbev/msae134";
 }
 
 auto cmaple::isEffective(const Alignment &aln,
@@ -122,7 +124,11 @@ void cmaple::runCMAPLE(cmaple::Params &params)
           throw std::invalid_argument("Unknown Model " + params.sub_model_str);
         }
         assert(sub_model != cmaple::ModelBase::UNKNOWN);
-        Model model(sub_model, aln.getSeqType());
+        bool useRateVariationModel = params.rate_variation || params.site_specific_rate_matrix;
+        // Model model(aln.ref_seq.size(), useRateVariationModel, params.rate_variation, params.wt_pseudocount, params.rates_filename, params.rate_variation_max_num_EM_steps, sub_model, aln.getSeqType());
+        Model model(sub_model, aln.getSeqType(), useRateVariationModel, params.rate_variation,
+                    aln.ref_seq.size(), params.wt_pseudocount,
+                    params.rate_variation_max_num_EM_steps , params.rates_filename);
         
         // If users only want to convert the alignment to another format -> convert it and terminate
         if (params.output_aln.length())
@@ -149,7 +155,8 @@ void cmaple::runCMAPLE(cmaple::Params &params)
         const cmaple::Tree::TreeSearchType tree_search_type = cmaple::Tree::parseTreeSearchType(params.tree_search_type_str);
         std::ostream null_stream(nullptr);
         std::ostream& out_stream = cmaple::verbose_mode >= cmaple::VB_MED ? std::cout : null_stream;
-        tree.infer(tree_search_type, params.shallow_tree_search, out_stream);
+        tree.infer(static_cast<int>(params.num_threads), tree_search_type,
+                   params.shallow_tree_search, params.compute_SPRTA, out_stream);
         
         // Compute branch supports (if users want to do so)
         if (params.compute_aLRT_SH)
@@ -196,6 +203,16 @@ void cmaple::runCMAPLE(cmaple::Params &params)
             out << tree.exportTSV();
             out.close();
         }
+
+        // export MAT if selected
+        if(params.output_MAT)
+        {
+            std::string filename = prefix + ".mat.nex";
+            std::cout << "Writing MAT to file " << filename << std::endl;
+            ofstream out = ofstream(filename);
+            out << tree.exportNexus(tree_format, false, true);
+            out.close();
+        }
         
         // output log-likelihood of the tree
         if (cmaple::verbose_mode > cmaple::VB_QUIET) {
@@ -216,16 +233,18 @@ void cmaple::runCMAPLE(cmaple::Params &params)
             
         // Show information about output files
         std::cout << "Analysis results written to:" << std::endl;
-        std::cout << "Maximum-likelihood tree:       " << output_treefile << std::endl;
+        std::cout << "Maximum-likelihood tree:     " << output_treefile << std::endl;
+        if (params.output_MAT)
+            std::cout << "Estimated MAT:               " << prefix + ".mat.nex" << std::endl;
         if (params.output_NEXUS || params.compute_SPRTA)
-            std::cout << "Tree in NEXUS format:          " << output_treefile + ".nex" << std::endl;
+            std::cout << "Tree in NEXUS format:        " << output_treefile + ".nex" << std::endl;
         if (params.compute_SPRTA && params.output_alternative_spr)
-            std::cout << "Meta data in TSV format:       " << output_treefile + ".tsv" << std::endl;
+            std::cout << "Meta data in TSV format:     " << output_treefile + ".tsv" << std::endl;
         /*if (params.compute_aLRT_SH) {
           std::cout << "Tree with aLRT-SH values:      "
                     << prefix + ".aLRT_SH.treefile" << std::endl;
         }*/
-        std::cout << "Screen log file:               " << prefix + ".log" << std::endl << std::endl;
+        std::cout << "Screen log file:             " << prefix + ".log" << std::endl << std::endl;
         
         // show runtime
         auto end = getRealTime();

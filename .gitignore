@@ -17,6 +17,8 @@ dist/
 !tools/iqtree3/src/lib32/**
 !tools/iqtree3/src/libmac/**
 !tools/iqtree3/src/libmac_m1/**
+!tools/iqtree3/src/libmac26/**
+!tools/iqtree3/src/libmac26_m1/**
 !tools/iqtree3/src/liblinux_arm/**
 !tools/iqtree3/src/cmaple/libraries/static/**
 

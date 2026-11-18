@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Build IQ-TREE 3.0.1 from the vendored upstream source.
+# Build IQ-TREE 3.1.4 from the vendored upstream source.
 #
 # Windows uses Clang on purpose. IQ-TREE's CMake adds "novx" for GCC on
 # Windows ("GCC does not properly support memory alignment"), which caps the
 # runtime at SSE4.2 and removes the AVX/FMA kernels. The official Windows
 # binaries are Clang builds; using Clang here keeps the AVX+FMA kernel.
 #
-# The Windows build also enables "cpp14" because the upstream Windows recipe
-# does so for the MinGW toolchain. CMAPLE is disabled on Windows upstream.
+# MUTSEL is disabled: it requires a Rust toolchain and the Rust static
+# library; YR-MPE does not expose MUTSEL models.
 
 set -euo pipefail
 
@@ -30,13 +30,10 @@ stage="$CYAN_BUILD/stage/$tool"
 rm -rf "$build"
 mkdir -p "$cmake_build" "$stage"
 
-# MinGW/Clang needs two small fixes for IQ-TREE 3.0.1:
-#   * pll/hardware.c calls the MSVC __cpuid intrinsic whenever WIN32 is
-#     defined; route non-MSVC builds through the existing inline-asm path.
-#   * terraphast pins CXX_STANDARD 11; Clang 23 rejects the checked_uint
-#     operator definitions in C++11/14 mode (duplicate mangled names).
-#     Use C++17 for terraphast when building with Clang on Windows.
-# Apply the patch to a build copy to keep the vendored upstream tree pristine.
+# MinGW/Clang needs one small fix for IQ-TREE 3.1.4: pll/hardware.c calls
+# the MSVC __cpuid intrinsic whenever WIN32 is defined; route non-MSVC builds
+# through the existing inline-asm path. Apply the patch to a build copy to
+# keep the vendored upstream tree pristine.
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   src="$build/src"
   cp -a "$TOOL_DIR/src" "$src"
@@ -56,6 +53,7 @@ cmake_args=(
   -G Ninja
   -DCMAKE_BUILD_TYPE=Release
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+  -DUSE_MUTSEL=OFF
 )
 flags=()
 
@@ -76,7 +74,7 @@ case "$CYAN_PLATFORM" in
       -DBoost_INCLUDE_DIR="$MINGW_PREFIX/include"
       -DEIGEN3_INCLUDE_DIR="$MINGW_PREFIX/include/eigen3"
     )
-    flags=(static cpp14)
+    flags=(static)
     ;;
   linux)
     cmake_args+=(
@@ -202,7 +200,8 @@ Linux: GCC, statically linked. macOS: Apple Clang with Homebrew libomp
 (bundled as libomp.dylib).
 
 CMAPLE is disabled on Windows by upstream; it is included on Linux/macOS.
-LSD2 dating is included on all platforms.
+LSD2 dating is included on all platforms. MUTSEL is disabled (no Rust
+toolchain dependency).
 EOF
 
 bash "$CYAN_ROOT/scripts/package_tool.sh" "$tool" "$stage"
