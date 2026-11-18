@@ -125,34 +125,63 @@ log() {
   printf '==> %s\n' "$*"
 }
 
+log_err() {
+  printf '==> %s\n' "$*" >&2
+}
+
 die() {
   printf 'ERROR: %s\n' "$*" >&2
   exit 1
 }
 
+# True when tools/<name>/SUPPORTED_PLATFORMS lists the current target.
+# A missing file means the tool supports every target.
+cyan_tool_supported() {
+  local dir="$1"
+  local target="${CYAN_PLATFORM}-${CYAN_ARCH}"
+  [[ -f "$dir/SUPPORTED_PLATFORMS" ]] || return 0
+  tr -d '\r' < "$dir/SUPPORTED_PLATFORMS" | grep -qx "$target"
+}
+
 # Print the build.sh or smoke.sh paths selected by CYAN_TOOLS.
 # CYAN_TOOLS accepts comma- or space-separated tool names; empty selects all.
+# Tools that do not support the current target are skipped.
 cyan_tool_scripts() {
   local kind="${1:?usage: cyan_tool_scripts <build|smoke>}"
   local filter="${CYAN_TOOLS:-}"
+  local target="${CYAN_PLATFORM}-${CYAN_ARCH}"
   filter="${filter//,/ }"
   local -a found=()
 
   if [[ -n "${filter// /}" ]]; then
-    local name
+    local name tool_dir
     for name in $filter; do
-      [[ -f "$CYAN_ROOT/tools/$name/$kind.sh" ]] \
+      tool_dir="$CYAN_ROOT/tools/$name"
+      [[ -f "$tool_dir/$kind.sh" ]] \
         || die "unknown tool or missing $kind.sh: $name"
-      found+=("$CYAN_ROOT/tools/$name/$kind.sh")
+      if cyan_tool_supported "$tool_dir"; then
+        found+=("$tool_dir/$kind.sh")
+      else
+        log_err "Skipping $name: not supported on $target"
+      fi
     done
   else
     shopt -s nullglob
-    found=("$CYAN_ROOT"/tools/*/"$kind.sh")
+    local tool_dir
+    for tool_dir in "$CYAN_ROOT"/tools/*; do
+      [[ -f "$tool_dir/$kind.sh" ]] || continue
+      if cyan_tool_supported "$tool_dir"; then
+        found+=("$tool_dir/$kind.sh")
+      else
+        log_err "Skipping $(basename "$tool_dir"): not supported on $target"
+      fi
+    done
     shopt -u nullglob
   fi
 
-  [[ ${#found[@]} -gt 0 ]] || die "no tools selected for $kind"
-  printf '%s\n' "${found[@]}"
+  if [[ ${#found[@]} -gt 0 ]]; then
+    printf '%s\n' "${found[@]}"
+  fi
 }
 
 sha256_file() {
@@ -163,4 +192,68 @@ sha256_file() {
   else
     openssl dgst -sha256 "$1" | awk '{print $NF}'
   fi
+}
+
+# Convert a Windows path to an MSYS path when cygpath is available.
+cyan_windows_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+cyan_msmpi_inc() {
+  local raw="${MSMPI_INC:-C:/Program Files (x86)/Microsoft SDKs/MPI/Include}"
+  local path
+  path="$(cyan_windows_path "$raw")"
+  printf '%s\n' "${path%/}"
+}
+
+cyan_msmpi_lib() {
+  local inc raw path
+  inc="$(cyan_msmpi_inc)"
+  raw="${MSMPI_LIB:-$(dirname "$inc")/Lib/x64}"
+  path="$(cyan_windows_path "$raw")"
+  printf '%s\n' "${path%/}"
+}
+
+# Locate mpiexec from the MS-MPI runtime.
+cyan_mpiexec() {
+  local -a candidates=()
+  local raw="${MSMPI_BIN:-}"
+  if [[ -n "$raw" ]]; then
+    raw="${raw%/}"
+    raw="${raw%\\}"
+    candidates+=("$raw/mpiexec.exe")
+  fi
+  candidates+=(
+    "C:/Program Files/Microsoft MPI/Bin/mpiexec.exe"
+    "D:/Program Files/Microsoft MPI/Bin/mpiexec.exe"
+  )
+
+  local candidate path
+  for candidate in "${candidates[@]}"; do
+    [[ -n "$candidate" ]] || continue
+    path="$(cyan_windows_path "$candidate")"
+    if [[ -f "$path" ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  done
+  command -v mpiexec.exe 2>/dev/null || command -v mpiexec 2>/dev/null || true
+}
+
+cyan_msmpi_license() {
+  local candidate path
+  for candidate in \
+    "C:/Program Files/Microsoft MPI/License/MicrosoftMPI-Redistributable-EULA.rtf" \
+    "D:/Program Files/Microsoft MPI/License/MicrosoftMPI-Redistributable-EULA.rtf"; do
+    path="$(cyan_windows_path "$candidate")"
+    if [[ -f "$path" ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  done
+  return 0
 }

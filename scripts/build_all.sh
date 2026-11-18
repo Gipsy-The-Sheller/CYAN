@@ -13,6 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 scripts="$(cyan_tool_scripts build)" || exit 1
+if [[ -z "$scripts" ]]; then
+  log "No selected tool supports $CYAN_PLATFORM $CYAN_ARCH; nothing to build"
+  exit 0
+fi
 while IFS= read -r build; do
   [[ -n "$build" ]] || continue
   tool_dir="$(dirname "$build")"

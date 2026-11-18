@@ -30,13 +30,22 @@ repository itself contains source and build recipes, not compiled binaries.
 │  ├─ smoke_all.sh               # loops tools/*/smoke.sh
 │  └─ package_tool.sh            # archive + SHA-256 + source manifest
 └─ tools/
-   └─ lsd2/
-      ├─ VERSION                 # tool version
-      ├─ UPSTREAM                # upstream URL, commit, license
-      ├─ build.sh                # compile and stage
-      ├─ smoke.sh                # run a real example
-      ├─ src/                    # vendored upstream source
-      └─ examples/               # upstream example data
+   ├─ lsd2/
+   │  ├─ VERSION                 # tool version
+   │  ├─ UPSTREAM                # upstream URL, commit, license
+   │  ├─ build.sh                # compile and stage
+   │  ├─ smoke.sh                # run a real example
+   │  ├─ src/                    # vendored upstream source
+   │  └─ examples/               # upstream example data
+   └─ pbmpi/
+      ├─ VERSION
+      ├─ UPSTREAM
+      ├─ PACKAGE_DIR             # archive root (pbmpi-1.9)
+      ├─ SUPPORTED_PLATFORMS     # Windows arm64 intentionally absent
+      ├─ build.sh
+      ├─ smoke.sh
+      ├─ sources/
+      └─ pb_mpiManual1.9.pdf
 ```
 
 ## Build locally
@@ -71,8 +80,9 @@ inputs and build every tool on every platform.
 
 ## Packages
 
-Each package is a single archive whose root is the tool name, so extracting it
-into `YR_MPE/bin/` produces `YR_MPE/bin/<tool>/<binary>` directly:
+Each package is a single archive whose root is the tool name (or its
+`PACKAGE_DIR` value), so extracting it into `YR_MPE/bin/` produces
+`YR_MPE/bin/<tool>/<binary>` directly:
 
 ```text
 lsd2-2.4.4-Windows-x64-v0.1.0.zip
@@ -94,23 +104,44 @@ The package name uses `<tool>-<version>-<Platform>-<arch>-<release>`, where
 ## Adding a tool
 
 1. Vendor the upstream source under `tools/<name>/` and keep its license.
-2. Add `VERSION` and `UPSTREAM` (URL, commit, license).
-3. Implement `build.sh`: compile into `build/<name>/`, stage the binary plus
+2. Add `VERSION` and `UPSTREAM` (URL, commit, tag, license).
+3. Optionally add `PACKAGE_DIR` (archive root directory; defaults to the tool
+   name) and `SUPPORTED_PLATFORMS` (one `platform-arch` per line; missing means
+   all targets).
+4. Implement `build.sh`: compile into `build/<name>/`, stage the binary plus
    `LICENSE`, `README.md` and `VERSION` into `build/stage/<name>/`, then call
    `bash scripts/package_tool.sh <name> <stage-dir>`.
-4. Implement `smoke.sh`: run the built binary against a small upstream example.
-5. Commit. The workflow discovers `tools/*/build.sh` automatically; no matrix
+5. Implement `smoke.sh`: run the built binary against a small upstream example.
+6. Commit. The workflow discovers `tools/*/build.sh` automatically; no matrix
    edit is needed.
+
+A tool that does not list the current target in `SUPPORTED_PLATFORMS` is
+skipped with a log message, so a single configuration can cover native-only
+and cross-platform tools.
 
 ## Tools
 
-| Tool | Version | Upstream | License |
-| --- | --- | --- | --- |
-| LSD2 | 2.4.4 | [tothuhien/lsd2](https://github.com/tothuhien/lsd2) commit `c61110f` | GPL-2.0 |
+| Tool | Version | Platforms | Upstream | License |
+| --- | --- | --- | --- | --- |
+| LSD2 | 2.4.4 | all five targets | [tothuhien/lsd2](https://github.com/tothuhien/lsd2) commit `c61110f` | GPL-2.0 |
+| PhyloBayes-MPI | 1.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bayesiancook/pbmpi](https://github.com/bayesiancook/pbmpi) tag `v1.9` | GPL-2.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
 GPL-2.0; individual source files carry the upstream GPL notice.
+
+PhyloBayes-MPI is vendored unmodified from upstream tag `v1.9`
+(`e7ec4d5f6c325a6bdade2a0c01d1e65ef58f8d20`). The Windows x64 build uses the
+Microsoft MPI SDK and runtime; Linux and macOS builds use `mpicxx`. Windows
+arm64 is not supported because Microsoft MPI has no ARM64 SDK.
+
+### MPI runtime
+
+The PhyloBayes-MPI package links against the MPI implementation used at build
+time. The Windows package bundles `mpiexec.exe` and requires the Microsoft MPI
+v10.1.1 runtime (`msmpi.dll`) to be installed. The Linux and macOS packages
+expect a compatible OpenMPI `mpiexec` on `PATH`; install OpenMPI before use.
+Each package includes an `MPI-RUNTIME.txt` with the exact requirement.
 
 ## Licensing
 

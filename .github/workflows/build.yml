@@ -42,6 +42,9 @@ jobs:
     env:
       CYAN_ARCH: x64
       CYAN_TOOLS: ${{ github.event.inputs.tools }}
+      MSMPI_INC: C:\Program Files (x86)\Microsoft SDKs\MPI\Include
+      MSMPI_LIB: C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64
+      MSMPI_BIN: C:\Program Files\Microsoft MPI\Bin
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +57,24 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            make
             zip
+
+      - name: Install Microsoft MPI SDK and runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $runtime = Join-Path $env:RUNNER_TEMP "msmpisetup.exe"
+          $sdkMsi = Join-Path $env:RUNNER_TEMP "msmpisdk.msi"
+          Invoke-WebRequest -Uri "https://github.com/microsoft/Microsoft-MPI/releases/download/v10.1.1/msmpisetup.exe" -OutFile $runtime
+          Invoke-WebRequest -Uri "https://github.com/microsoft/Microsoft-MPI/releases/download/v10.1.1/msmpisdk.msi" -OutFile $sdkMsi
+          $p = Start-Process $runtime -ArgumentList "-unattend" -Wait -PassThru
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "MS-MPI runtime install failed: $($p.ExitCode)" }
+          $p = Start-Process msiexec.exe -ArgumentList "/i `"$sdkMsi`" /quiet /norestart" -Wait -PassThru
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "MS-MPI SDK install failed: $($p.ExitCode)" }
+          if (!(Test-Path "C:\Program Files (x86)\Microsoft SDKs\MPI\Include\mpi.h")) { throw "MS-MPI SDK header missing" }
+          if (!(Test-Path "C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpi.lib")) { throw "MS-MPI SDK library missing" }
+          if (!(Test-Path "C:\Program Files\Microsoft MPI\Bin\mpiexec.exe")) { throw "MS-MPI runtime missing" }
 
       - name: Build
         run: bash scripts/build_all.sh
@@ -69,7 +89,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
 
   windows-arm64:
     name: Windows arm64
@@ -109,7 +129,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
 
   linux-x64:
     name: Linux x64
@@ -127,7 +147,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build pkg-config \
-            autoconf automake libtool
+            autoconf automake libtool openmpi-bin libopenmpi-dev
 
       - name: Build
         run: bash scripts/build_all.sh
@@ -142,7 +162,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
 
   linux-arm64:
     name: Linux arm64
@@ -160,7 +180,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build pkg-config \
-            autoconf automake libtool
+            autoconf automake libtool openmpi-bin libopenmpi-dev
 
       - name: Build
         run: bash scripts/build_all.sh
@@ -175,7 +195,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
 
   macos-arm64:
     name: macOS arm64
@@ -189,7 +209,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
-        run: brew install cmake ninja pkg-config
+        run: brew install cmake ninja pkg-config open-mpi
 
       - name: Build
         run: bash scripts/build_all.sh
@@ -204,7 +224,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
 
   release:
     name: Release
