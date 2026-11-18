@@ -23,6 +23,11 @@ version_out="$("$bin" --version 2>&1 | tr -d '\r' | head -n 1)"
 [[ "$version_out" == *"IQ-TREE version $version"* ]] \
   || die "unexpected version output: $version_out"
 
+if [[ "$CYAN_PLATFORM" == macos && -f "$pkg/libomp.dylib" ]]; then
+  otool -L "$bin" | grep -q '@loader_path/libomp.dylib' \
+    || die "libomp.dylib is not referenced through @loader_path"
+fi
+
 smoke="$CYAN_BUILD/$tool/smoke"
 rm -rf "$smoke"
 mkdir -p "$smoke"
