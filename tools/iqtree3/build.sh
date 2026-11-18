@@ -40,6 +40,9 @@ if [[ "$CYAN_PLATFORM" == windows ]]; then
   (
     cd "$src"
     patch -p1 --batch < "$TOOL_DIR/patches/iqtree3-mingw-clang.patch"
+    # phylotree.h is CRLF in the upstream tarball; qualify its allocator
+    # calls with sed so the patch file stays LF-only.
+    sed -i -E 's/(^|[^:])aligned_alloc</\1::aligned_alloc</g' tree/phylotree.h
   )
   # IQ-TREE bundles ELF libomp.a/libompstatic.a for its non-Windows builds.
   # CMake adds -L<src>/lib on WIN32, so -lomp would pick the ELF archive and

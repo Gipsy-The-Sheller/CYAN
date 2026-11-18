@@ -9,3 +9,1269 @@
  	__int32 regs[4];
  	__cpuid((int*)regs, (int)op);
  	*eax = regs[0];
+--- a/main/phyloanalysis.cpp
++++ b/main/phyloanalysis.cpp
+@@ -2955,11 +2955,11 @@
+         size_t branchNum = (superTree->params->partition_type != BRLEN_OPTIMIZE) ? superTree->branchNum
+                                                                                  : tree->branchNum;
+         size_t g_matrix_size = branchNum * mem_size;
+-        auto *G_matrix_part = aligned_alloc<double>(g_matrix_size);
++        auto *G_matrix_part = ::aligned_alloc<double>(g_matrix_size);
+         memset(G_matrix_part, 0, g_matrix_size * sizeof(double));
+-        auto *gradient_vector_part = aligned_alloc<double>(branchNum);
++        auto *gradient_vector_part = ::aligned_alloc<double>(branchNum);
+         memset(gradient_vector_part, 0, branchNum * sizeof(double));
+-        auto *hessian_diagonal_part = aligned_alloc<double>(branchNum);
++        auto *hessian_diagonal_part = ::aligned_alloc<double>(branchNum);
+         memset(hessian_diagonal_part, 0, branchNum * sizeof(double));
+ 
+         double *G_matrix_sub_tree = tree->G_matrix;
+@@ -3013,11 +3013,11 @@
+         }
+         size_t branchNum = tree->branchNum;
+         size_t g_matrix_size = branchNum * mem_size;
+-        auto *G_matrix_new = aligned_alloc<double>(g_matrix_size);
++        auto *G_matrix_new = ::aligned_alloc<double>(g_matrix_size);
+         memset(G_matrix_new, 0, g_matrix_size * sizeof(double));
+-        auto *gradient_vector_new = aligned_alloc<double>(branchNum);
++        auto *gradient_vector_new = ::aligned_alloc<double>(branchNum);
+         memset(gradient_vector_new, 0, branchNum * sizeof(double));
+-        auto *hessian_diagonal_new = aligned_alloc<double>(branchNum);
++        auto *hessian_diagonal_new = ::aligned_alloc<double>(branchNum);
+         memset(hessian_diagonal_new, 0, branchNum * sizeof(double));
+ 
+         double *G_matrix_tree = tree->G_matrix;
+--- a/main/treetesting.cpp
++++ b/main/treetesting.cpp
+@@ -851,10 +851,10 @@
+     int *rstream = randstream;
+ #endif
+     size_t boot;
+-    int *boot_sample = aligned_alloc<int>(maxnptn);
++    int *boot_sample = ::aligned_alloc<int>(maxnptn);
+     memset(boot_sample, 0, maxnptn*sizeof(int));
+     
+-    double *boot_sample_dbl = aligned_alloc<double>(maxnptn);
++    double *boot_sample_dbl = ::aligned_alloc<double>(maxnptn);
+     
+ #ifdef _OPENMP
+ #pragma omp for schedule(dynamic)
+@@ -1172,11 +1172,11 @@
+         if (params.do_weighted_test || params.do_au_test) {
+             if (!(lhdiff_weights = new double [ntrees * ntrees]))
+                 outError(ERR_NO_MEMORY);
+-            pattern_lhs = aligned_alloc<double>(ntrees*maxnptn);
++            pattern_lhs = ::aligned_alloc<double>(ntrees*maxnptn);
+             //            if (!(pattern_lhs = new double[ntrees* nptn]))
+             //                outError(ERR_NO_MEMORY);
+         }
+-        pattern_lh = aligned_alloc<double>(maxnptn);
++        pattern_lh = ::aligned_alloc<double>(maxnptn);
+         //        if (!(pattern_lh = new double[nptn]))
+         //            outError(ERR_NO_MEMORY);
+         if (!(orig_tree_lh = new double[ntrees]))
+--- a/model/modelgtr.cpp
++++ b/model/modelgtr.cpp
+@@ -42,17 +42,17 @@
+ 
+ 	freq_type = FREQ_UNKNOWN;
+ 	
+-	eigenvalues = aligned_alloc<double>(num_states);
++	eigenvalues = ::aligned_alloc<double>(num_states);
+ 
+-	eigenvectors = aligned_alloc<double>(num_states*num_states);
++	eigenvectors = ::aligned_alloc<double>(num_states*num_states);
+ //	for (i = 0; i < num_states; i++)
+ //		eigenvectors[i] = new double[num_states];
+ 
+-	inv_eigenvectors = aligned_alloc<double>(num_states*num_states);
++	inv_eigenvectors = ::aligned_alloc<double>(num_states*num_states);
+ //	for (i = 0; i < num_states; i++)
+ //		inv_eigenvectors[i] = new double[num_states];
+ 		
+-//	eigen_coeff = aligned_alloc<double>(ncoeff);
++//	eigen_coeff = ::aligned_alloc<double>(ncoeff);
+ 
+ //	if (count_rates) 
+ //		computeEmpiricalRate();
+--- a/model/modelhmm.cpp
++++ b/model/modelhmm.cpp
+@@ -27,7 +27,7 @@
+     size_t transit_size = get_safe_upper_limit(ncat * ncat);
+     if (transitLog != nullptr)
+         aligned_free(transitLog);
+-    transitLog = aligned_alloc<double>(transit_size);
++    transitLog = ::aligned_alloc<double>(transit_size);
+     tranSameCat = INITIAL_PROB_SAME_CAT;
+     // compute the log values of transition matrix
+     computeLogTransits();
+--- a/model/modelhmmgm.cpp
++++ b/model/modelhmmgm.cpp
+@@ -15,8 +15,8 @@
+     ndim = (numcat - 1) * numcat;
+     // memory allocation of the array
+     size_t transit_size = get_safe_upper_limit(numcat * numcat);
+-    transit = aligned_alloc<double>(transit_size);
+-    transit_normalize = aligned_alloc<double>(transit_size);
++    transit = ::aligned_alloc<double>(transit_size);
++    transit_normalize = ::aligned_alloc<double>(transit_size);
+ }
+ 
+ /**
+@@ -35,7 +35,7 @@
+     size_t transit_size = get_safe_upper_limit(ncat * ncat);
+     if (transitLog != nullptr)
+         aligned_free(transitLog);
+-    transitLog = aligned_alloc<double>(transit_size);
++    transitLog = ::aligned_alloc<double>(transit_size);
+ 
+     // the transition probability going to the same state is initialized to INITIAL_PROB_SAME_CAT
+     // and the other probabilities are initialized as equally distributed
+--- a/model/modelhmmtm.cpp
++++ b/model/modelhmmtm.cpp
+@@ -17,9 +17,9 @@
+     ntypepair = (numtype + 1) * numtype / 2;
+     nsite = numsite;
+     size_t transit_size = get_safe_upper_limit(numcat * numcat * ntypepair);
+-    transit = aligned_alloc<double>(transit_size);
+-    transit_normalize = aligned_alloc<double>(transit_size);
+-    tranSameCats = aligned_alloc<double>(get_safe_upper_limit(ntypepair));
++    transit = ::aligned_alloc<double>(transit_size);
++    transit_normalize = ::aligned_alloc<double>(transit_size);
++    tranSameCats = ::aligned_alloc<double>(get_safe_upper_limit(ntypepair));
+ 
+     transit_fwd = nullptr; // site i-1 -> site i
+     // create the mapping between site ID and which matrix should be used for the transition between the previous site and the current site
+@@ -48,7 +48,7 @@
+     size_t transit_size = get_safe_upper_limit(ncat * ncat * ntypepair);
+     if (transitLog != nullptr)
+         aligned_free(transitLog);
+-    transitLog = aligned_alloc<double>(transit_size);
++    transitLog = ::aligned_alloc<double>(transit_size);
+ 
+     for (k = 0; k < ntypepair; k++) {
+         tranSameCats[k] = INITIAL_PROB_SAME_CAT;
+@@ -83,7 +83,7 @@
+         aligned_free(transit_fwd);
+     
+     // which transit matrix should be used for each site
+-    transit_fwd = aligned_alloc<int>(array_size); // site i-1 -> site i
++    transit_fwd = ::aligned_alloc<int>(array_size); // site i-1 -> site i
+     int curr_type;
+     int transit_id;
+     int pre_type;
+--- a/model/modelmarkov.cpp
++++ b/model/modelmarkov.cpp
+@@ -106,7 +106,7 @@
+ 
+         int num_rates = getNumRateEntries();
+         if (!rate_matrix)
+-            rate_matrix = aligned_alloc<double>(num_states*num_states);
++            rate_matrix = ::aligned_alloc<double>(num_states*num_states);
+ 
+         // reallocate the mem spaces
+         if (rates && old_reversible) {
+--- a/model/modelmixture.cpp
++++ b/model/modelmixture.cpp
+@@ -3539,7 +3539,7 @@
+ 
+ 	int nmixtures = size();
+     aligned_free(prop);
+-	prop = aligned_alloc<double>(nmixtures);
++	prop = ::aligned_alloc<double>(nmixtures);
+ 
+ 	double sum = 0.0;
+ 	int i;
+@@ -4070,8 +4070,8 @@
+     size_t nptn = phylo_tree->aln->getNPattern();
+     size_t nmix = getNMixtures();
+ 
+-    double *new_prop = aligned_alloc<double>(nmix);
+-    double *ratio_prop = aligned_alloc<double>(nmix);
++    double *new_prop = ::aligned_alloc<double>(nmix);
++    double *ratio_prop = ::aligned_alloc<double>(nmix);
+ 
+     // EM algorithm loop described in Wang, Li, Susko, and Roger (2008)
+ 
+@@ -4143,7 +4143,7 @@
+     size_t nptn = phylo_tree->aln->getNPattern();
+     size_t nmix = size();
+ 
+-    double *new_prop = aligned_alloc<double>(nmix);
++    double *new_prop = ::aligned_alloc<double>(nmix);
+     PhyloTree *tree = new PhyloTree;
+ 
+     // attach memory to save space
+--- a/model/modelpomomixture.cpp
++++ b/model/modelpomomixture.cpp
+@@ -42,7 +42,7 @@
+     this->full_name += ratehet->full_name;
+ 
+     // initialize mixture
+-    prop = aligned_alloc<double>(num_rate_cats);
++    prop = ::aligned_alloc<double>(num_rate_cats);
+ 
+     // creating mixture components
+     for (m = 0; m < num_rate_cats; m++) {
+--- a/model/modelset.cpp
++++ b/model/modelset.cpp
+@@ -222,10 +222,10 @@
+     
+     size_t states2 = num_states*num_states;
+     
+-    eigenvalues = aligned_alloc<double>(num_states*nmixtures);
+-    eigenvectors = aligned_alloc<double>(states2*nmixtures);
+-    inv_eigenvectors = aligned_alloc<double>(states2*nmixtures);
+-    inv_eigenvectors_transposed = aligned_alloc<double>(states2*nmixtures);
++    eigenvalues = ::aligned_alloc<double>(num_states*nmixtures);
++    eigenvectors = ::aligned_alloc<double>(states2*nmixtures);
++    inv_eigenvectors = ::aligned_alloc<double>(states2*nmixtures);
++    inv_eigenvectors_transposed = ::aligned_alloc<double>(states2*nmixtures);
+     
+     // assigning memory for individual models
+     size_t m = 0;
+--- a/model/ratefree.cpp
++++ b/model/ratefree.cpp
+@@ -509,8 +509,8 @@
+     size_t nmix = ncategory;
+     const double MIN_PROP = 1e-4;
+     
+-//    double *lk_ptn = aligned_alloc<double>(nptn);
+-    double *new_prop = aligned_alloc<double>(nmix);
++//    double *lk_ptn = ::aligned_alloc<double>(nptn);
++    double *new_prop = ::aligned_alloc<double>(nmix);
+     PhyloTree *tree = new PhyloTree;
+ 
+     // attach memory to save space
+--- a/model/rateheterotachy.cpp
++++ b/model/rateheterotachy.cpp
+@@ -163,8 +163,8 @@
+     size_t nptn = phylo_tree->aln->getNPattern();
+     size_t nmix = ncategory;
+     
+-    double *new_prop = aligned_alloc<double>(nmix);
+-    double *ratio_prop = aligned_alloc<double>(nmix);
++    double *new_prop = ::aligned_alloc<double>(nmix);
++    double *ratio_prop = ::aligned_alloc<double>(nmix);
+ 
+     // EM algorithm loop described in Wang, Li, Susko, and Roger (2008)
+ 
+--- a/tree/discordance.cpp
++++ b/tree/discordance.cpp
+@@ -467,11 +467,11 @@
+             size_t nstates = (*it)->model->num_states;
+             total_size += nptn*nstates;
+         }
+-        return aligned_alloc<double>(total_size);
++        return ::aligned_alloc<double>(total_size);
+     } else {
+         size_t nptn = getAlnNPattern();
+         size_t nstates = model->num_states;
+-        return aligned_alloc<double>(nptn*nstates);
++        return ::aligned_alloc<double>(nptn*nstates);
+     }
+ }
+ 
+@@ -494,7 +494,7 @@
+         }
+ //        first_nei.push_back(*it);
+         double *ptn_ancestral_prob = newAncestralProb();
+-        int *ptn_ancestral_seq = aligned_alloc<int>(getAlnNPattern());
++        int *ptn_ancestral_seq = ::aligned_alloc<int>(getAlnNPattern());
+         if (params->ancestral_site_concordance == 1) {
+             computeMarginalAncestralState((PhyloNeighbor*)(*it), (PhyloNode*)branch.first,
+                                           ptn_ancestral_prob, ptn_ancestral_seq);
+@@ -519,7 +519,7 @@
+         }
+ //        second_nei.push_back(*it);
+         double *ptn_ancestral_prob = newAncestralProb();
+-        int *ptn_ancestral_seq = aligned_alloc<int>(getAlnNPattern());
++        int *ptn_ancestral_seq = ::aligned_alloc<int>(getAlnNPattern());
+         if (params->ancestral_site_concordance == 1) {
+             computeMarginalAncestralState((PhyloNeighbor*)(*it), (PhyloNode*)branch.second,
+                                           ptn_ancestral_prob, ptn_ancestral_seq);
+--- a/tree/iqtree.cpp
++++ b/tree/iqtree.cpp
+@@ -375,7 +375,7 @@
+ #else
+         size_t nptn = get_safe_upper_limit(orig_nptn);
+ #endif
+-        BootValType *mem = aligned_alloc<BootValType>(nptn * (size_t)(params.gbo_replicates));
++        BootValType *mem = ::aligned_alloc<BootValType>(nptn * (size_t)(params.gbo_replicates));
+         memset(mem, 0, nptn * (size_t)(params.gbo_replicates) * sizeof(BootValType));
+         for (i = 0; i < params.gbo_replicates; i++) {
+             boot_samples[i] = mem + i*nptn;
+@@ -3857,16 +3857,16 @@
+ 
+ #ifdef BOOT_VAL_FLOAT
+     int maxnptn = get_safe_upper_limit_float(nptn);
+-    BootValType *pattern_lh = aligned_alloc<BootValType>(maxnptn);
++    BootValType *pattern_lh = ::aligned_alloc<BootValType>(maxnptn);
+     memset(pattern_lh, 0, maxnptn*sizeof(BootValType));
+-    double *pattern_lh_orig = aligned_alloc<double>(nptn);
++    double *pattern_lh_orig = ::aligned_alloc<double>(nptn);
+     computePatternLikelihood(pattern_lh_orig, &cur_logl);
+     for (int i = 0; i < nptn; i++) {
+         pattern_lh[i] = (float)pattern_lh_orig[i];
+     }
+ #else
+     int maxnptn = get_safe_upper_limit(nptn);
+-    BootValType *pattern_lh = aligned_alloc<BootValType>(maxnptn);
++    BootValType *pattern_lh = ::aligned_alloc<BootValType>(maxnptn);
+     memset(pattern_lh, 0, maxnptn*sizeof(BootValType));
+     computePatternLikelihood(pattern_lh, &cur_logl);
+ #endif
+--- a/tree/iqtreemix.cpp
++++ b/tree/iqtreemix.cpp
+@@ -146,15 +146,15 @@
+     size_t block_size = get_safe_upper_limit(nptn) * ntree;
+     size_t block_size32 = get_safe_upper_limit_float(nptn) * ntree;
+ 
+-    ptn_freq = aligned_alloc<double>(mem_size);
+-    patn_isconst = aligned_alloc<int>(mem_size32);
+-    ptn_like_cat = aligned_alloc<double>(block_size);
+-    _ptn_like_cat = aligned_alloc<double>(block_size);
+-    ptn_scale_cat = aligned_alloc<double>(block_size);
+-    patn_parsimony = aligned_alloc<int>(block_size32);
+-    single_ptn_tree_like = aligned_alloc<double>(get_safe_upper_limit(ntree));
+-    ptn_like = aligned_alloc<double>(mem_size);
+-    _pattern_scaling = aligned_alloc<double>(mem_size);
++    ptn_freq = ::aligned_alloc<double>(mem_size);
++    patn_isconst = ::aligned_alloc<int>(mem_size32);
++    ptn_like_cat = ::aligned_alloc<double>(block_size);
++    _ptn_like_cat = ::aligned_alloc<double>(block_size);
++    ptn_scale_cat = ::aligned_alloc<double>(block_size);
++    patn_parsimony = ::aligned_alloc<int>(block_size32);
++    single_ptn_tree_like = ::aligned_alloc<double>(get_safe_upper_limit(ntree));
++    ptn_like = ::aligned_alloc<double>(mem_size);
++    _pattern_scaling = ::aligned_alloc<double>(mem_size);
+ 
+     // get the pattern frequencies
+     for (i=0; i<nptn; i++)
+@@ -876,7 +876,7 @@
+             tot_mem_size = mem_size * ntree;
+         else
+             tot_mem_size = mem_size * at(0)->site_rate->getNDiscreteRate() * ((at(0)->model_factory->fused_mix_rate)? 1 : at(0)->model->getNMixtures());
+-        _pattern_lh_cat = aligned_alloc<double>(tot_mem_size);
++        _pattern_lh_cat = ::aligned_alloc<double>(tot_mem_size);
+     }
+ 
+     if (isLinkSiteRate) {
+@@ -3002,7 +3002,7 @@
+ 
+     if (rhas_var == nullptr) {
+         // allocate memory to the array rhas_var
+-        rhas_var = aligned_alloc<double>(at(0)->getRate()->getNDim() + 1);
++        rhas_var = ::aligned_alloc<double>(at(0)->getRate()->getNDim() + 1);
+     }
+     // Store the RHAS variables for tree 0 to the array rhas_var
+     at(0)->getRate()->setVariables(rhas_var);
+--- a/tree/phylohmm.cpp
++++ b/tree/phylohmm.cpp
+@@ -31,21 +31,21 @@
+     size_t site_like_cat_size = get_safe_upper_limit(nsite) * ncat;
+     size_t site_transition_size = get_safe_upper_limit(nsite-1) * ncat * ncat;
+     
+-    prob = aligned_alloc<double>(prob_size);
+-    prob_log = aligned_alloc<double>(prob_size);
+-    site_like_cat = aligned_alloc<double>(site_like_cat_size);
+-    site_categories = aligned_alloc<int>(get_safe_upper_limit(nsite));
+-    work_arr = aligned_alloc<double>(prob_size * 2);
+-    next_cat = aligned_alloc<int>(site_like_cat_size);
++    prob = ::aligned_alloc<double>(prob_size);
++    prob_log = ::aligned_alloc<double>(prob_size);
++    site_like_cat = ::aligned_alloc<double>(site_like_cat_size);
++    site_categories = ::aligned_alloc<int>(get_safe_upper_limit(nsite));
++    work_arr = ::aligned_alloc<double>(prob_size * 2);
++    next_cat = ::aligned_alloc<int>(site_like_cat_size);
+     
+     // allocate memory for the backward and forward algorithm
+-    site_like_cat_fwd = aligned_alloc<double>(site_like_cat_size);
+-    bwd_array = aligned_alloc<double>(site_like_cat_size);
+-    fwd_array = aligned_alloc<double>(site_like_cat_size);
++    site_like_cat_fwd = ::aligned_alloc<double>(site_like_cat_size);
++    bwd_array = ::aligned_alloc<double>(site_like_cat_size);
++    fwd_array = ::aligned_alloc<double>(site_like_cat_size);
+ 
+     // allocate memory for the marginal probabilities
+-    marginal_prob = aligned_alloc<double>(site_like_cat_size);
+-    marginal_tran = aligned_alloc<double>(site_transition_size);
++    marginal_prob = ::aligned_alloc<double>(site_like_cat_size);
++    marginal_tran = ::aligned_alloc<double>(site_transition_size);
+ 
+     // the probabilities are initialized as equally distributed
+     double init_prob_value = 1.0/((double)ncat);
+--- a/tree/phylokernel.h
++++ b/tree/phylokernel.h
+@@ -162,10 +162,10 @@
+     double *eval = model->getEigenvalues();
+ 
+ 
+-    VectorClass *echildren = aligned_alloc<VectorClass>(block*nstates/VCSIZE*(node->degree()-1));
++    VectorClass *echildren = ::aligned_alloc<VectorClass>(block*nstates/VCSIZE*(node->degree()-1));
+     double *partial_lh_leaves = nullptr;
+     if (num_leaves > 0)
+-        partial_lh_leaves = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block*num_leaves);
++        partial_lh_leaves = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block*num_leaves);
+     VectorClass *echild = echildren;
+     double *partial_lh_leaf = partial_lh_leaves;
+     
+@@ -346,8 +346,8 @@
+         double *partial_lh_right = partial_lh_leaves + (aln->STATE_UNKNOWN+1)*block;
+ 
+         // assign pointers for left and right partial_lh
+-//        double **lh_left_ptr = aligned_alloc<double*>(nptn);
+-//        double **lh_right_ptr = aligned_alloc<double*>(nptn);
++//        double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
++//        double **lh_right_ptr = ::aligned_alloc<double*>(nptn);
+ //        for (ptn = 0; ptn < orig_ntn; ptn++) {
+ //            lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ //            lh_right_ptr[ptn] = &partial_lh_right[block * (aln->at(ptn))[right->node->id]];
+@@ -414,7 +414,7 @@
+ 
+ 
+         // assign pointers for partial_lh_left
+-//        double **lh_left_ptr = aligned_alloc<double*>(nptn);
++//        double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
+ //        for (ptn = 0; ptn < orig_ntn; ptn++) {
+ //            lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ //        }
+@@ -621,9 +621,9 @@
+     double *eval = model->getEigenvalues();
+     assert(eval);
+ 
+-    VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
+-    VectorClass *vc_val1 = (VectorClass*)aligned_alloc<double>(block);
+-    VectorClass *vc_val2 = (VectorClass*)aligned_alloc<double>(block);
++    VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
++    VectorClass *vc_val1 = (VectorClass*)::aligned_alloc<double>(block);
++    VectorClass *vc_val2 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+     VectorClass vc_len = dad_branch->length;
+     for (c = 0; c < ncat_mix; c++) {
+@@ -873,7 +873,7 @@
+     double *eval = model->getEigenvalues();
+     assert(eval);
+ 
+-    VectorClass *vc_val = (VectorClass*)aligned_alloc<double>(block);
++    VectorClass *vc_val = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 
+     for (c = 0; c < ncat_mix; c++) {
+@@ -895,7 +895,7 @@
+         // special treatment for TIP-INTERNAL NODE case
+ 
+         // precompute information from one tip
+-        double *partial_lh_node = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++        double *partial_lh_node = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+         IntVector states_dad = aln->seq_states[dad->id];
+         states_dad.push_back(aln->STATE_UNKNOWN);
+         for (IntVector::iterator it = states_dad.begin(); it != states_dad.end(); it++) {
+@@ -918,7 +918,7 @@
+         VectorClass vc_ptn[VCSIZE];
+         VectorClass lh_final(0.0), vc_freq;
+         VectorClass lh_ptn; // store likelihoods of VCSIZE consecutive patterns
+-//        double **lh_states_dad = aligned_alloc<double*>(maxptn);
++//        double **lh_states_dad = ::aligned_alloc<double*>(maxptn);
+ //        for (ptn = 0; ptn < orig_nptn; ptn++)
+ //            lh_states_dad[ptn] = &tip_partial_lh[(aln->at(ptn))[dad->id] * tip_block];
+ //        for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -926,7 +926,7 @@
+ //        // initialize beyond #patterns for efficiency
+ //        for (ptn = nptn; ptn < maxptn; ptn++)
+ //            lh_states_dad[ptn] = &tip_partial_lh[aln->STATE_UNKNOWN * tip_block];
+-        int *ptn_states_dad = aligned_alloc<int>(maxptn);
++        int *ptn_states_dad = ::aligned_alloc<int>(maxptn);
+         for (ptn = 0; ptn < orig_nptn; ptn++)
+             ptn_states_dad[ptn] = (aln->at(ptn))[dad->id];
+         for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -1236,7 +1236,7 @@
+     double *eval = model->getEigenvalues();
+     assert(eval);
+ 
+-    VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
++    VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+     VectorClass vc_len = current_it->length;
+     for (c = 0; c < ncat_mix; c++) {
+@@ -1844,7 +1844,7 @@
+     
+     UINT * partial_pars = dad_branch->partial_pars;
+     memset(partial_pars, 0, sizeof(UINT)*pars_block_size);
+-    VectorClass *tip_buffer = aligned_alloc<VectorClass>(nstates*2);
++    VectorClass *tip_buffer = ::aligned_alloc<VectorClass>(nstates*2);
+     
+     PhyloNeighbor *left = nullptr, *right = nullptr;
+     
+@@ -2018,7 +2018,7 @@
+     }
+     
+     //int nptn = aln->size();
+-    //    if(!_pattern_pars) _pattern_pars = aligned_alloc<BootValTypePars>(nptn+VCSIZE_USHORT);
++    //    if(!_pattern_pars) _pattern_pars = ::aligned_alloc<BootValTypePars>(nptn+VCSIZE_USHORT);
+     //    memset(_pattern_pars, 0, sizeof(BootValTypePars) * (nptn+VCSIZE_USHORT));
+     
+     if ((dad_branch->partial_lh_computed & 2) == 0 && !node->isLeaf())
+@@ -2032,7 +2032,7 @@
+     VectorClass branch_pars = 0;
+     
+     if (dad->isLeaf()) {
+-        VectorClass *tip_buffer = aligned_alloc<VectorClass>(nstates);
++        VectorClass *tip_buffer = ::aligned_alloc<VectorClass>(nstates);
+         // external node
+         for (size_t ptn = 0; ptn < aln->ordered_pattern.size(); ptn+=VectorClass::size()){
+             int ptn_start_index = ptn * nstates;
+--- a/tree/phylokernelmixrate.h
++++ b/tree/phylokernelmixrate.h
+@@ -95,7 +95,7 @@
+ 	double *evec = model->getEigenvectors();
+ 	double *inv_evec = model->getInverseEigenvectors();
+ 
+-	VectorClass *vc_inv_evec = aligned_alloc<VectorClass>(ncat*nstates*nstates/VCSIZE);
++	VectorClass *vc_inv_evec = ::aligned_alloc<VectorClass>(ncat*nstates*nstates/VCSIZE);
+ 	ASSERT(inv_evec && evec);
+ 	for (c = 0; c < ncat; c++)
+ 	for (i = 0; i < nstates; i++) {
+@@ -107,8 +107,8 @@
+ 
+ 	dad_branch->lh_scale_factor = left->lh_scale_factor + right->lh_scale_factor;
+ 
+-	VectorClass *eleft = (VectorClass*)aligned_alloc<double>(block*nstates);
+-	VectorClass *eright = (VectorClass*)aligned_alloc<double>(block*nstates);
++	VectorClass *eleft = (VectorClass*)::aligned_alloc<double>(block*nstates);
++	VectorClass *eright = (VectorClass*)::aligned_alloc<double>(block*nstates);
+ 
+ 	// precompute information buffer
+ 	for (c = 0; c < ncat; c++) {
+@@ -135,8 +135,8 @@
+ 		// special treatment for TIP-TIP (cherry) case
+ 
+ 		// pre compute information for both tips
+-		double *partial_lh_left = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+-		double *partial_lh_right = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_left = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_right = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+ 
+ 		vector<int>::iterator it;
+ 		for (it = aln->seq_states[left->node->id].begin(); it != aln->seq_states[left->node->id].end(); it++) {
+@@ -188,8 +188,8 @@
+ 		}
+ 
+ 		// assign pointers for left and right partial_lh
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
+-		double **lh_right_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
++		double **lh_right_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 			lh_right_ptr[ptn] = &partial_lh_right[block * (aln->at(ptn))[right->node->id]];
+@@ -247,7 +247,7 @@
+ 		memcpy(dad_branch->scale_num, right->scale_num, nptn * sizeof(UBYTE));
+ 
+ 		// pre compute information for left tip
+-		double *partial_lh_left = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_left = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+ 
+ 
+ 		vector<int>::iterator it;
+@@ -278,7 +278,7 @@
+ 		}
+ 
+ 		// assign pointers for partial_lh_left
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 		}
+@@ -479,9 +479,9 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val1 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val2 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val1 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val2 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	VectorClass vc_len = dad_branch->length;
+ 	for (c = 0; c < ncat; c++) {
+@@ -727,7 +727,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-    VectorClass *vc_val = aligned_alloc<VectorClass>(block/VCSIZE);
++    VectorClass *vc_val = ::aligned_alloc<VectorClass>(block/VCSIZE);
+ 
+ 
+ 	for (c = 0; c < ncat; c++) {
+@@ -751,7 +751,7 @@
+ 		VectorClass lh_ptn; // store likelihoods of VCSIZE consecutive patterns
+ 
+     	// precompute information from one tip
+-    	double *partial_lh_node = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++    	double *partial_lh_node = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+     	IntVector states_dad = aln->seq_states[dad->id];
+     	states_dad.push_back(aln->STATE_UNKNOWN);
+     	for (IntVector::iterator it = states_dad.begin(); it != states_dad.end(); it++) {
+@@ -764,7 +764,7 @@
+     	// now do the real computation
+ 
+ 
+-//    	double **lh_states_dad = aligned_alloc<double*>(maxptn);
++//    	double **lh_states_dad = ::aligned_alloc<double*>(maxptn);
+ //    	for (ptn = 0; ptn < orig_nptn; ptn++)
+ //    		lh_states_dad[ptn] = &tip_partial_lh[(aln->at(ptn))[dad->id] * nstates * ncat];
+ //    	for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -773,7 +773,7 @@
+ //    	for (ptn = nptn; ptn < maxptn; ptn++)
+ //    		lh_states_dad[ptn] = &tip_partial_lh[aln->STATE_UNKNOWN * nstates * ncat];
+ 
+-		int *ptn_states_dad = aligned_alloc<int>(maxptn);
++		int *ptn_states_dad = ::aligned_alloc<int>(maxptn);
+ 		for (ptn = 0; ptn < orig_nptn; ptn++)
+ 			ptn_states_dad[ptn] = (aln->at(ptn))[dad->id];
+ 		for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -990,7 +990,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	VectorClass vc_len = current_it->length;
+ 	for (c = 0; c < ncat; c++) {
+--- a/tree/phylokernelmixture.h
++++ b/tree/phylokernelmixture.h
+@@ -94,7 +94,7 @@
+ 	double *evec = model->getEigenvectors();
+ 	double *inv_evec = model->getInverseEigenvectors();
+ 
+-	VectorClass *vc_inv_evec = aligned_alloc<VectorClass>(nmixture*nstatesqr/VCSIZE);
++	VectorClass *vc_inv_evec = ::aligned_alloc<VectorClass>(nmixture*nstatesqr/VCSIZE);
+ 	ASSERT(inv_evec && evec);
+ 	for (m = 0; m < nmixture; m++) {
+ 		for (i = 0; i < nstates; i++) {
+@@ -107,8 +107,8 @@
+ 
+ 	dad_branch->lh_scale_factor = left->lh_scale_factor + right->lh_scale_factor;
+ 
+-	VectorClass *eleft = (VectorClass*)aligned_alloc<double>(block*nstates);
+-	VectorClass *eright = (VectorClass*)aligned_alloc<double>(block*nstates);
++	VectorClass *eleft = (VectorClass*)::aligned_alloc<double>(block*nstates);
++	VectorClass *eright = (VectorClass*)::aligned_alloc<double>(block*nstates);
+ 
+ 	// precompute information buffer
+ 	for (c = 0; c < ncat; c++) {
+@@ -139,8 +139,8 @@
+ 		// special treatment for TIP-TIP (cherry) case
+ 
+ 		// pre compute information for both tips
+-		double *partial_lh_left = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+-		double *partial_lh_right = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_left = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_right = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+ 
+ 		vector<int>::iterator it;
+ 		for (it = aln->seq_states[left->node->id].begin(); it != aln->seq_states[left->node->id].end(); it++) {
+@@ -199,8 +199,8 @@
+ 		}
+ 
+ 		// assign pointers for left and right partial_lh
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
+-		double **lh_right_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
++		double **lh_right_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 			lh_right_ptr[ptn] = &partial_lh_right[block * (aln->at(ptn))[right->node->id]];
+@@ -258,7 +258,7 @@
+ 		memcpy(dad_branch->scale_num, right->scale_num, nptn * sizeof(UBYTE));
+ 
+ 		// pre compute information for left tip
+-		double *partial_lh_left = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++		double *partial_lh_left = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+ 
+ 
+ 		vector<int>::iterator it;
+@@ -292,7 +292,7 @@
+ 		}
+ 
+ 		// assign pointers for partial_lh_left
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 		}
+@@ -495,9 +495,9 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val1 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val2 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val1 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val2 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	for (c = 0; c < ncat; c++) {
+ 		VectorClass vc_rate = site_rate->getRate(c);
+@@ -759,7 +759,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-    VectorClass *vc_val = (VectorClass*)aligned_alloc<double>(block);
++    VectorClass *vc_val = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	for (c = 0; c < ncat; c++) {
+ 		for (m = 0; m < nmixture; m++) {
+@@ -777,7 +777,7 @@
+ 
+ 	if (dad->isLeaf()) {
+     	// special treatment for TIP-INTERNAL NODE case
+-    	double *partial_lh_node = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++    	double *partial_lh_node = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+     	IntVector states_dad = aln->seq_states[dad->id];
+     	states_dad.push_back(aln->STATE_UNKNOWN);
+     	for (IntVector::iterator it = states_dad.begin(); it != states_dad.end(); it++) {
+@@ -801,7 +801,7 @@
+     	VectorClass lh_final(0.0), vc_freq;
+ 		VectorClass lh_ptn; // store likelihoods of VCSIZE consecutive patterns
+ 
+-//    	double **lh_states_dad = aligned_alloc<double*>(maxptn);
++//    	double **lh_states_dad = ::aligned_alloc<double*>(maxptn);
+ //    	for (ptn = 0; ptn < orig_nptn; ptn++)
+ //    		lh_states_dad[ptn] = &tip_partial_lh[(aln->at(ptn))[dad->id] * nstates];
+ //    	for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -810,7 +810,7 @@
+ //    	for (ptn = nptn; ptn < maxptn; ptn++)
+ //    		lh_states_dad[ptn] = &tip_partial_lh[aln->STATE_UNKNOWN * nstates];
+ 
+-		int *ptn_states_dad = aligned_alloc<int>(maxptn);
++		int *ptn_states_dad = ::aligned_alloc<int>(maxptn);
+ 		for (ptn = 0; ptn < orig_nptn; ptn++)
+ 			ptn_states_dad[ptn] = (aln->at(ptn))[dad->id];
+ 		for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -1073,7 +1073,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	for (c = 0; c < ncat; c++) {
+ 		VectorClass vc_rate = site_rate->getRate(c);
+--- a/tree/phylokernelnew.h
++++ b/tree/phylokernelnew.h
+@@ -1375,10 +1375,10 @@
+         }
+     } else {
+         if (Params::getInstance().buffer_mem_save) {
+-            echildren = aligned_alloc<double>(get_safe_upper_limit(block*nstates*(node->degree()-1)));
++            echildren = ::aligned_alloc<double>(get_safe_upper_limit(block*nstates*(node->degree()-1)));
+             if (num_leaves > 0)
+-                partial_lh_leaves = aligned_alloc<double>(get_safe_upper_limit((aln->STATE_UNKNOWN+1)*block*num_leaves));
+-            double *buffer_tmp = aligned_alloc<double>(nstates);
++                partial_lh_leaves = ::aligned_alloc<double>(get_safe_upper_limit((aln->STATE_UNKNOWN+1)*block*num_leaves));
++            double *buffer_tmp = ::aligned_alloc<double>(nstates);
+ #ifdef KERNEL_FIX_STATES
+             computePartialInfo<VectorClass, nstates>(info, (VectorClass*)buffer_tmp, echildren, partial_lh_leaves);
+ #else
+@@ -2283,8 +2283,8 @@
+     bool ASC_Lewis = (ASC_type == ASC_VARIANT || ASC_type == ASC_INFORMATIVE);
+     double *const_df = nullptr, *const_ddf = nullptr;
+     if (ASC_Holder) {
+-        const_df = aligned_alloc<double>(get_safe_upper_limit(nptn) - max_orig_nptn);
+-        const_ddf = aligned_alloc<double>(get_safe_upper_limit(nptn) - max_orig_nptn);
++        const_df = ::aligned_alloc<double>(get_safe_upper_limit(nptn) - max_orig_nptn);
++        const_ddf = ::aligned_alloc<double>(get_safe_upper_limit(nptn) - max_orig_nptn);
+     }
+ 
+     size_t mix_addr_nstates_malign[ncat_mix], mix_addr_malign[ncat_mix], cat_id[ncat_mix];
+@@ -2794,7 +2794,7 @@
+     if (dad->isLeaf()) {
+         // cout << "PhyloTree::computeLikelihoodBrachGenericSIMD dad->isLeaf()" << endl << flush;
+     	// special treatment for TIP-INTERNAL NODE case
+-//    	double *partial_lh_node = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++//    	double *partial_lh_node = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+         double *partial_lh_node;
+         if (SITE_MODEL)
+             partial_lh_node = &tip_partial_lh[dad->id * tip_mem_size];
+--- a/tree/phylokernelnonrev.h
++++ b/tree/phylokernelnonrev.h
+@@ -78,10 +78,10 @@
+     double *partial_lh_leaves = info.partial_lh_leaves;
+     
+     if (Params::getInstance().buffer_mem_save) {
+-        echildren = aligned_alloc<double>(get_safe_upper_limit(block*nstates*(node->degree()-1)));
++        echildren = ::aligned_alloc<double>(get_safe_upper_limit(block*nstates*(node->degree()-1)));
+         if (num_leaves > 0)
+-            partial_lh_leaves = aligned_alloc<double>(get_safe_upper_limit((aln->STATE_UNKNOWN+1)*block*num_leaves));
+-        double *buffer_tmp = aligned_alloc<double>(nstates);
++            partial_lh_leaves = ::aligned_alloc<double>(get_safe_upper_limit((aln->STATE_UNKNOWN+1)*block*num_leaves));
++        double *buffer_tmp = ::aligned_alloc<double>(nstates);
+ #ifdef KERNEL_FIX_STATES
+         computePartialInfo<VectorClass, nstates>(info, (VectorClass*)buffer_tmp, echildren, partial_lh_leaves);
+ #else
+@@ -870,7 +870,7 @@
+     } else {
+         double *buffer_lh = nullptr;
+         if (SAFE_NUMERIC) {
+-            buffer_lh = aligned_alloc<double>(sizeof(VectorClass)*block*num_packets);
++            buffer_lh = ::aligned_alloc<double>(sizeof(VectorClass)*block*num_packets);
+         }
+     	// both dad and node are internal nodes
+ #ifdef _OPENMP
+@@ -1104,7 +1104,7 @@
+     double *buffer_partial_lh_ptr = buffer_partial_lh + (block*nstates);
+     double *state_freq_fundi = nullptr;
+     if (do_fundi) {
+-        state_freq_fundi = aligned_alloc<double>(block);
++        state_freq_fundi = ::aligned_alloc<double>(block);
+     }
+     
+ 	for (size_t c = 0; c < ncat_mix; c++) {
+--- a/tree/phylokernelsafe.h
++++ b/tree/phylokernelsafe.h
+@@ -164,10 +164,10 @@
+ 	double *eval = model->getEigenvalues();
+ 
+ 
+-    VectorClass *echildren = aligned_alloc<VectorClass>(block*nstates/VCSIZE*(node->degree()-1));
++    VectorClass *echildren = ::aligned_alloc<VectorClass>(block*nstates/VCSIZE*(node->degree()-1));
+     double *partial_lh_leaves = NULL;
+     if (num_leaves > 0)
+-        partial_lh_leaves = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block*num_leaves);
++        partial_lh_leaves = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block*num_leaves);
+     VectorClass *echild = echildren;
+     double *partial_lh_leaf = partial_lh_leaves;
+     
+@@ -330,8 +330,8 @@
+ 
+ 		// assign pointers for left and right partial_lh
+         /*
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
+-		double **lh_right_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
++		double **lh_right_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 			lh_right_ptr[ptn] = &partial_lh_right[block * (aln->at(ptn))[right->node->id]];
+@@ -400,7 +400,7 @@
+ 
+ 		// assign pointers for partial_lh_left
+         /*
+-		double **lh_left_ptr = aligned_alloc<double*>(nptn);
++		double **lh_left_ptr = ::aligned_alloc<double*>(nptn);
+ 		for (ptn = 0; ptn < orig_ntn; ptn++) {
+ 			lh_left_ptr[ptn] = &partial_lh_left[block *  (aln->at(ptn))[left->node->id]];
+ 		}
+@@ -599,9 +599,9 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val1 = (VectorClass*)aligned_alloc<double>(block);
+-	VectorClass *vc_val2 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val1 = (VectorClass*)::aligned_alloc<double>(block);
++	VectorClass *vc_val2 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	VectorClass vc_len = dad_branch->length;
+ 	for (c = 0; c < ncat_mix; c++) {
+@@ -890,7 +890,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-    VectorClass *vc_val = (VectorClass*)aligned_alloc<double>(block);
++    VectorClass *vc_val = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 
+ 	for (c = 0; c < ncat_mix; c++) {
+@@ -912,7 +912,7 @@
+     	// special treatment for TIP-INTERNAL NODE case
+ 
+     	// precompute information from one tip        
+-    	double *partial_lh_node = aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
++    	double *partial_lh_node = ::aligned_alloc<double>((aln->STATE_UNKNOWN+1)*block);
+     	IntVector states_dad = aln->seq_states[dad->id];
+     	states_dad.push_back(aln->STATE_UNKNOWN);
+     	for (IntVector::iterator it = states_dad.begin(); it != states_dad.end(); it++) {
+@@ -936,7 +936,7 @@
+     	VectorClass lh_final(0.0), vc_freq;
+ 		VectorClass lh_ptn; // store likelihoods of VCSIZE consecutive patterns
+ 
+-		int *ptn_states_dad = aligned_alloc<int>(maxptn);
++		int *ptn_states_dad = ::aligned_alloc<int>(maxptn);
+ 		for (ptn = 0; ptn < orig_nptn; ptn++)
+ 			ptn_states_dad[ptn] = (aln->at(ptn))[dad->id];
+ 		for (ptn = orig_nptn; ptn < nptn; ptn++)
+@@ -1247,7 +1247,7 @@
+     double *eval = model->getEigenvalues();
+     ASSERT(eval);
+ 
+-	VectorClass *vc_val0 = (VectorClass*)aligned_alloc<double>(block);
++	VectorClass *vc_val0 = (VectorClass*)::aligned_alloc<double>(block);
+ 
+ 	VectorClass vc_len = current_it->length;
+ 	for (c = 0; c < ncat_mix; c++) {
+--- a/tree/phylokernelsitemodel.h
++++ b/tree/phylokernelsitemodel.h
+@@ -563,8 +563,8 @@
+ 
+     ModelSet *models = (ModelSet*)model;
+     VectorClass tree_lh = 0.0;
+-    VectorClass *cat_length = aligned_alloc<VectorClass>(ncat);
+-    VectorClass *cat_prop = aligned_alloc<VectorClass>(ncat);
++    VectorClass *cat_length = ::aligned_alloc<VectorClass>(ncat);
++    VectorClass *cat_prop = ::aligned_alloc<VectorClass>(ncat);
+     for (c = 0; c < ncat; c++) {
+         cat_length[c] = site_rate->getRate(c) * dad_branch->length;
+         cat_prop[c] = site_rate->getProp(c);
+@@ -740,8 +740,8 @@
+     ModelSet *models = (ModelSet*)model;
+     
+     VectorClass tree_lh = 0.0;
+-    VectorClass *cat_length = aligned_alloc<VectorClass>(ncat);
+-    VectorClass *cat_prop = aligned_alloc<VectorClass>(ncat);
++    VectorClass *cat_length = ::aligned_alloc<VectorClass>(ncat);
++    VectorClass *cat_prop = ::aligned_alloc<VectorClass>(ncat);
+     for (c = 0; c < ncat; c++) {
+         cat_length[c] = site_rate->getRate(c) * current_it->length;
+         cat_prop[c] = site_rate->getProp(c);
+--- a/tree/phylosupertree.cpp
++++ b/tree/phylosupertree.cpp
+@@ -1355,8 +1355,8 @@
+             mixed_data = true; */
+     }
+ 
+-    ptn_ancestral_prob = aligned_alloc<double>(total_size);
+-    ptn_ancestral_seq = aligned_alloc<int>(total_ptn);
++    ptn_ancestral_prob = ::aligned_alloc<double>(total_size);
++    ptn_ancestral_seq = ::aligned_alloc<int>(total_ptn);
+ }
+ 
+ /**
+--- a/tree/phylosupertreeplen.cpp
++++ b/tree/phylosupertreeplen.cpp
+@@ -1678,51 +1678,51 @@
+         total_g_matrix_block_size += g_matrix_block_size[part];
+ 	}
+     if(!gradient_vector)
+-        gradient_vector = aligned_alloc<double>(total_branch_block_size);
++        gradient_vector = ::aligned_alloc<double>(total_branch_block_size);
+     at(part_order[0])->gradient_vector = gradient_vector;
+     if(!hessian_diagonal)
+-        hessian_diagonal = aligned_alloc<double>(total_branch_block_size);
++        hessian_diagonal = ::aligned_alloc<double>(total_branch_block_size);
+     at(part_order[0])->hessian_diagonal = hessian_diagonal;
+     if(!G_matrix)
+-        G_matrix = aligned_alloc<double>(total_g_matrix_block_size);
++        G_matrix = ::aligned_alloc<double>(total_g_matrix_block_size);
+     at(part_order[0])->G_matrix = G_matrix;
+     if (!_pattern_lh)
+-        _pattern_lh = aligned_alloc<double>(total_mem_size);
++        _pattern_lh = ::aligned_alloc<double>(total_mem_size);
+     at(part_order[0])->_pattern_lh = _pattern_lh;
+     if (!_pattern_lh_cat)
+-        _pattern_lh_cat = aligned_alloc<double>(total_lh_cat_size);
++        _pattern_lh_cat = ::aligned_alloc<double>(total_lh_cat_size);
+     at(part_order[0])->_pattern_lh_cat = _pattern_lh_cat;
+     if (!theta_all)
+-        theta_all = aligned_alloc<double>(total_block_size);
++        theta_all = ::aligned_alloc<double>(total_block_size);
+     if (!buffer_scale_all)
+-        buffer_scale_all = aligned_alloc<double>(total_mem_size);
++        buffer_scale_all = ::aligned_alloc<double>(total_mem_size);
+     if (!buffer_partial_lh)
+-        buffer_partial_lh = aligned_alloc<double>(total_buffer_size);
++        buffer_partial_lh = ::aligned_alloc<double>(total_buffer_size);
+     at(part_order[0])->theta_all = theta_all;
+     at(part_order[0])->buffer_scale_all = buffer_scale_all;
+     at(part_order[0])->buffer_partial_lh = buffer_partial_lh;
+     if (!ptn_freq) {
+-        ptn_freq = aligned_alloc<double>(total_mem_size);
++        ptn_freq = ::aligned_alloc<double>(total_mem_size);
+         ptn_freq_computed = false;
+     }
+     if (!ptn_freq_pars)
+-        ptn_freq_pars = aligned_alloc<UINT>(total_mem_size);
++        ptn_freq_pars = ::aligned_alloc<UINT>(total_mem_size);
+     at(part_order[0])->ptn_freq = ptn_freq;
+     at(part_order[0])->ptn_freq_pars = ptn_freq_pars;
+     at(part_order[0])->ptn_freq_computed = false;
+     if (!ptn_invar)
+-        ptn_invar = aligned_alloc<double>(total_mem_size);
++        ptn_invar = ::aligned_alloc<double>(total_mem_size);
+     at(part_order[0])->ptn_invar = ptn_invar;
+ 
+ //    size_t IT_NUM = (params->nni5) ? 6 : 2;
+     size_t IT_NUM = 2;
+     if (!nni_partial_lh) {
+-        nni_partial_lh = aligned_alloc<double>(IT_NUM*total_block_size);
++        nni_partial_lh = ::aligned_alloc<double>(IT_NUM*total_block_size);
+     }
+     at(part_order[0])->nni_partial_lh = nni_partial_lh;
+     
+     if (!nni_scale_num) {
+-        nni_scale_num = aligned_alloc<UBYTE>(IT_NUM*total_scale_block_size);
++        nni_scale_num = ::aligned_alloc<UBYTE>(IT_NUM*total_scale_block_size);
+     }
+     at(part_order[0])->nni_scale_num = nni_scale_num;
+ 
+@@ -1761,15 +1761,15 @@
+ 	// allocate central memory for all partitions
+ 	if (!central_partial_lh) {
+         try {
+-        	central_partial_lh = aligned_alloc<double>(total_partial_lh_entries);
+-        	central_scale_num = aligned_alloc<UBYTE>(total_scale_num_entries);
++        	central_partial_lh = ::aligned_alloc<double>(total_partial_lh_entries);
++        	central_scale_num = ::aligned_alloc<UBYTE>(total_scale_num_entries);
+         } catch (std::bad_alloc &ba) {
+         	outError("Not enough memory for partial likelihood vectors (bad_alloc)");
+         }
+ 	}
+ //    if (!central_partial_pars) {
+ //        try {
+-//        	central_partial_pars = aligned_alloc<UINT>(total_partial_pars_entries);
++//        	central_partial_pars = ::aligned_alloc<UINT>(total_partial_pars_entries);
+ //        } catch (std::bad_alloc &ba) {
+ //        	outError("Not enough memory for partial parsimony vectors (bad_alloc)");
+ //        }
+--- a/tree/phylotree.cpp
++++ b/tree/phylotree.cpp
+@@ -788,7 +788,7 @@
+  */
+ void PhyloTree::initializeAllPartialPars() {
+     if (!ptn_freq_pars)
+-        ptn_freq_pars = aligned_alloc<UINT>(get_safe_upper_limit_float(getAlnNPattern()));
++        ptn_freq_pars = ::aligned_alloc<UINT>(get_safe_upper_limit_float(getAlnNPattern()));
+     int index = 0;
+     initializeAllPartialPars(index);
+     clearAllPartialLH();
+@@ -805,7 +805,7 @@
+             size_t memsize = (aln->getNSeq()) * 4 * pars_block_size + tip_partial_pars_size;
+             if (verbose_mode >= VB_MAX)
+                 cout << "Allocating " << memsize * sizeof(UINT) << " bytes for partial parsimony vectors" << endl;
+-            central_partial_pars = aligned_alloc<UINT>(memsize);
++            central_partial_pars = ::aligned_alloc<UINT>(memsize);
+             if (!central_partial_pars)
+                 outError("Not enough memory for partial parsimony vectors");
+             tip_partial_pars = central_partial_pars + (aln->getNSeq()) * 4 * pars_block_size;
+@@ -848,7 +848,7 @@
+ }
+ 
+ /* UINT *PhyloTree::newBitsBlock() {
+-    return aligned_alloc<UINT>(getBitsBlockSize());
++    return ::aligned_alloc<UINT>(getBitsBlockSize());
+ }*/
+ 
+ 
+@@ -918,40 +918,40 @@
+         get_safe_upper_limit(model_factory->unobserved_ptns.size()));
+ 
+     if(!gradient_vector)
+-        gradient_vector = aligned_alloc<double>(branchNum);
++        gradient_vector = ::aligned_alloc<double>(branchNum);
+     if(!hessian_diagonal)
+-        hessian_diagonal = aligned_alloc<double>(branchNum);
++        hessian_diagonal = ::aligned_alloc<double>(branchNum);
+     //todo: please check here for memory allocation
+     if(!G_matrix) {
+         size_t g_matrix_size = branchNum * mem_size;
+-        G_matrix = aligned_alloc<double>(g_matrix_size);
++        G_matrix = ::aligned_alloc<double>(g_matrix_size);
+     }
+     size_t block_size = mem_size * numStates * site_rate->getNRate() * ((model_factory->fused_mix_rate)? 1 : model->getNMixtures());
+     // make sure _pattern_lh size is divisible by 4 (e.g., 9->12, 14->16)
+     if (!_pattern_lh)
+-        _pattern_lh = aligned_alloc<double>(mem_size);
++        _pattern_lh = ::aligned_alloc<double>(mem_size);
+     if (!_pattern_lh_cat)
+-        _pattern_lh_cat = aligned_alloc<double>(mem_size * site_rate->getNDiscreteRate() * ((model_factory->fused_mix_rate)? 1 : model->getNMixtures()));
++        _pattern_lh_cat = ::aligned_alloc<double>(mem_size * site_rate->getNDiscreteRate() * ((model_factory->fused_mix_rate)? 1 : model->getNMixtures()));
+     if (!_site_lh && (params->robust_phy_keep < 1.0 || params->robust_median)) {
+-        _site_lh = aligned_alloc<double>(getAlnNSite());
++        _site_lh = ::aligned_alloc<double>(getAlnNSite());
+     }
+     if (!_pattern_scaling)
+-        _pattern_scaling = aligned_alloc<double>(mem_size);
++        _pattern_scaling = ::aligned_alloc<double>(mem_size);
+     if (!theta_all)
+-        theta_all = aligned_alloc<double>(block_size);
++        theta_all = ::aligned_alloc<double>(block_size);
+     if (!buffer_scale_all)
+-        buffer_scale_all = aligned_alloc<double>(mem_size);
++        buffer_scale_all = ::aligned_alloc<double>(mem_size);
+     if (!buffer_partial_lh) {
+-        buffer_partial_lh = aligned_alloc<double>(getBufferPartialLhSize());
++        buffer_partial_lh = ::aligned_alloc<double>(getBufferPartialLhSize());
+     }
+     if (!ptn_freq) {
+-        ptn_freq = aligned_alloc<double>(mem_size);
++        ptn_freq = ::aligned_alloc<double>(mem_size);
+         ptn_freq_computed = false;
+     }
+     if (!ptn_freq_pars)
+-        ptn_freq_pars = aligned_alloc<UINT>(mem_size);
++        ptn_freq_pars = ::aligned_alloc<UINT>(mem_size);
+     if (!ptn_invar)
+-        ptn_invar = aligned_alloc<double>(mem_size);
++        ptn_invar = ::aligned_alloc<double>(mem_size);
+     if (max_lh_slots == 0) {
+         getMemoryRequired();
+     }
+@@ -1115,8 +1115,8 @@
+         size_t IT_NUM = 2;
+         if (!nni_partial_lh) {
+             // allocate memory only once!
+-            nni_partial_lh = aligned_alloc<double>(IT_NUM*block_size);
+-            nni_scale_num = aligned_alloc<UBYTE>(IT_NUM*scale_block_size);
++            nni_partial_lh = ::aligned_alloc<double>(IT_NUM*block_size);
++            nni_scale_num = ::aligned_alloc<UBYTE>(IT_NUM*scale_block_size);
+         }
+ 
+         if (!central_partial_lh) {
+@@ -1129,7 +1129,7 @@
+             if (verbose_mode >= VB_MAX)
+                 cout << "Allocating " << mem_size * sizeof(double) << " bytes for partial likelihood vectors" << endl;
+             try {
+-                central_partial_lh = aligned_alloc<double>(mem_size);
++                central_partial_lh = ::aligned_alloc<double>(mem_size);
+             } catch (std::bad_alloc &ba) {
+                 outError("Not enough memory for partial likelihood vectors (bad_alloc)");
+             }
+@@ -1150,7 +1150,7 @@
+             if (verbose_mode >= VB_MAX)
+                 cout << "Allocating " << mem_size * sizeof(UBYTE) << " bytes for scale num vectors" << endl;
+             try {
+-                central_scale_num = aligned_alloc<UBYTE>(mem_size);
++                central_scale_num = ::aligned_alloc<UBYTE>(mem_size);
+             } catch (std::bad_alloc &ba) {
+                 outError("Not enough memory for scale num vectors (bad_alloc)");
+             }
+@@ -1165,7 +1165,7 @@
+                 cout << "Allocating " << mem_size * sizeof(UINT)
+                         << " bytes for partial parsimony vectors" << endl;
+             try {
+-                central_partial_pars = aligned_alloc<UINT>(mem_size);
++                central_partial_pars = ::aligned_alloc<UINT>(mem_size);
+             } catch (std::bad_alloc &ba) {
+                 outError("Not enough memory for partial parsimony vectors (bad_alloc)");
+             }
+@@ -1229,7 +1229,7 @@
+ }
+ 
+ double *PhyloTree::newPartialLh() {
+-    return aligned_alloc<double>(getPartialLhSize());
++    return ::aligned_alloc<double>(getPartialLhSize());
+ }
+ 
+ size_t PhyloTree::getPartialLhSize() {
+@@ -1256,7 +1256,7 @@
+ }
+ 
+ /* UBYTE *PhyloTree::newScaleNum() {
+-    return aligned_alloc<UBYTE>(getScaleNumSize());
++    return ::aligned_alloc<UBYTE>(getScaleNumSize());
+ }*/
+ 
+ Node *findFirstFarLeaf(Node *node, Node *dad = nullptr) {
+@@ -1360,7 +1360,7 @@
+     size_t ncat = site_rate->getNRate();
+     if (!model_factory->fused_mix_rate) ncat *= model->getNMixtures();
+ 
+-    double *mem = aligned_alloc<double>(nptn*ncat);
++    double *mem = ::aligned_alloc<double>(nptn*ncat);
+     memcpy(mem, _pattern_lh_cat, nptn*ncat*sizeof(double));
+     double *memptr = mem;
+ 
+@@ -5167,7 +5167,7 @@
+     int nptn = getAlnNPattern();
+     memset(lh_new, 0, sizeof(double) * 3);
+     int i;
+-    int *boot_freq = aligned_alloc<int>(getAlnNPattern());
++    int *boot_freq = ::aligned_alloc<int>(getAlnNPattern());
+     aln->createBootstrapAlignment(boot_freq, params->bootstrap_spec, rstream);
+     for (i = 0; i < nptn; i++) {
+ 
+@@ -6173,8 +6173,8 @@
+     size_t nsites = getAlnNSite();
+     size_t ncat = getNumLhCat(wsl);
+     double *pattern_lh, *pattern_lh_cat;
+-    pattern_lh = aligned_alloc<double>(getAlnNPattern());
+-    pattern_lh_cat = aligned_alloc<double>(getAlnNPattern()*ncat);
++    pattern_lh = ::aligned_alloc<double>(getAlnNPattern());
++    pattern_lh_cat = ::aligned_alloc<double>(getAlnNPattern()*ncat);
+     computePatternLikelihood(pattern_lh, nullptr, pattern_lh_cat, wsl);
+     for (size_t i = 0; i < nsites; ++i) {
+         if (partid >= 0) {
+--- a/tree/phylotreepars.cpp
++++ b/tree/phylotreepars.cpp
+@@ -474,7 +474,7 @@
+     ASSERT(aln);
+     int cost_nstates = aln->num_states;
+     // allocate memory for cost_matrix
+-    cost_matrix = aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
++    cost_matrix = ::aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
+     
+     switch (cost_type) {
+         case CM_LINEAR:
+@@ -507,7 +507,7 @@
+     int cost_nstates;
+     if(strcmp(file_name, "fitch") == 0 || strcmp(file_name, "e") == 0) { // uniform cost
+         cost_nstates = aln->num_states;
+-        cost_matrix = aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
++        cost_matrix = ::aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
+         for(int i = 0; i < cost_nstates; i++)
+             for(int j = 0; j < cost_nstates; j++){
+                 if(j == i) cost_matrix[(i * cost_nstates) + j] = 0;
+@@ -523,7 +523,7 @@
+         if (cost_nstates != aln->num_states)
+             outError("Cost matrix file does not have the same size as number of alignment states");
+         // allocate memory for cost_matrix
+-        cost_matrix = aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
++        cost_matrix = ::aligned_alloc<unsigned int>(cost_nstates * cost_nstates);
+         
+         // read numbers from file
+         for(int i = 0; i < cost_nstates; i++){
+@@ -814,7 +814,7 @@
+     }
+     
+     //int nptn = aln->size();
+-    //    if(!_pattern_pars) _pattern_pars = aligned_alloc<BootValTypePars>(nptn+VCSIZE_USHORT);
++    //    if(!_pattern_pars) _pattern_pars = ::aligned_alloc<BootValTypePars>(nptn+VCSIZE_USHORT);
+     //    memset(_pattern_pars, 0, sizeof(BootValTypePars) * (nptn+VCSIZE_USHORT));
+     
+     if ((dad_branch->partial_lh_computed & 2) == 0 && !node->isLeaf())
+--- a/tree/phylotreesse.cpp
++++ b/tree/phylotreesse.cpp
+@@ -421,7 +421,7 @@
+           bool hyper = false;
+           if (aln->pomo_sampling_method == SAMPLING_WEIGHTED_HYPER)
+             hyper = true;
+-          double *real_partial_lh = aligned_alloc<double>(nstates);
++          double *real_partial_lh = ::aligned_alloc<double>(nstates);
+           for (state = 0; state < aln->pomo_sampled_states.size(); state++) {
+             computeTipPartialLikelihoodPoMo(state, real_partial_lh, hyper);
+             // The vector tip_partial_lh stores inner product of real_partial_lh
+@@ -508,7 +508,7 @@
+     bool hyper = false;
+     if (aln->pomo_sampling_method == SAMPLING_WEIGHTED_HYPER)
+       hyper = true;
+-    double *real_partial_lh = aligned_alloc<double>(nstates);
++    double *real_partial_lh = ::aligned_alloc<double>(nstates);
+     for (state = 0; state < aln->pomo_sampled_states.size(); state++) {
+       computeTipPartialLikelihoodPoMo(state, real_partial_lh, hyper);
+       // The vector tip_partial_lh stores inner product of real_partial_lh
+@@ -1452,8 +1452,8 @@
+     size_t nptn = getAlnNPattern();
+     size_t nstates = model->num_states;
+ 
+-    ptn_ancestral_prob = aligned_alloc<double>(nptn*nstates);
+-    ptn_ancestral_seq = aligned_alloc<int>(nptn);
++    ptn_ancestral_prob = ::aligned_alloc<double>(nptn*nstates);
++    ptn_ancestral_seq = ::aligned_alloc<int>(nptn);
+ }
+ 
+ void PhyloTree::computeMarginalAncestralState(PhyloNeighbor *dad_branch, PhyloNode *dad,
