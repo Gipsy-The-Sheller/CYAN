@@ -76,7 +76,9 @@ if [[ "$CYAN_PLATFORM" == macos ]]; then
     install_name_tool -change "$dep" "@loader_path/libomp.dylib" \
       "$stage/muscle" 2>/dev/null || true
   done < <(otool -L "$stage/muscle" | awk '/libomp/ {print $1}')
+  codesign --force --sign - "$stage/libomp.dylib" >/dev/null 2>&1 || true
   "$STRIP" -x "$stage/muscle" 2>/dev/null || true
+  codesign --force --sign - "$stage/muscle" >/dev/null 2>&1 || true
 else
   "$STRIP" --strip-unneeded "$stage/muscle$CYAN_EXE" 2>/dev/null || true
 fi

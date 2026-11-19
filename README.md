@@ -306,7 +306,9 @@ reopen.
 `patches/aster2-portability.patch` replaces the single `<format>` use with
 ordinary string replacement and a `std::views::reverse` pipeline with reverse
 iterators, keeping the code buildable with GCC 11 on the Ubuntu 22.04 CI
-images. Windows and Linux binaries are static. The package root is `aster2/`
+images. It also adds the dependent `template` keywords and direct
+`thread_pool::SimpleScheduler` thread-pool types that Clang/AppleClang
+require. Windows and Linux binaries are static. The package root is `aster2/`
 (`aster2/astral(.exe)`, `aster2/caster(.exe)`).
 
 ### TrimAl

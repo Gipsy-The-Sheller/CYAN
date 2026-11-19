@@ -58,8 +58,11 @@ upstream computes the version separately from each driver's changelog.
   architecture.
 - `patches/aster2-portability.patch` replaces the single `<format>` use with
   ordinary string replacement and a `std::views::reverse` pipeline with
-  reverse iterators. This keeps ASTER2 buildable with GCC 11 on the Ubuntu
-  22.04 CI images; no functionality changes.
+  reverse iterators, so GCC 11 on the Ubuntu 22.04 images can build the code.
+  It also spells out dependent `template` names and uses
+  `thread_pool::SimpleScheduler` directly in the thread-pool types, which
+  Clang (including AppleClang on macOS and CLANGARM64 on Windows) requires.
+  There are no functional changes.
 - Windows and Linux binaries are static. macOS uses the system
   libc++/libSystem.
 - No external libraries are required.

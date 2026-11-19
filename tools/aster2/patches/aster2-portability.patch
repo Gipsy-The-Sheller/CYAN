@@ -42,6 +42,160 @@ index 6168d59..a8113c9 100644
  	}
  
  	virtual string changes() const noexcept {
+diff --git a/src/nni_algorithm.hpp b/src/nni_algorithm.hpp
+index aee0e9a..498dcd7 100644
+--- a/src/nni_algorithm.hpp
++++ b/src/nni_algorithm.hpp
+@@ -30,7 +30,7 @@ template<class T> concept NNI_ALGORITHM = requires {
+ 
+ template<class Attributes> concept STEPWISE_COLOR_QUADRIPARTITION_SCORE_ATTRIBUTES = requires(typename Attributes::score_t score){
+ 	requires stepwise_colorable::QUADRIPARTITION_STEPWISE_COLORABLE<typename Attributes::Color>;
+-	requires thread_pool::SCHEDULER<Attributes::template Scheduler, typename Attributes::Color::score_t>;
++	requires thread_pool::SCHEDULER<thread_pool::SimpleScheduler, typename Attributes::Color::score_t>;
+ 	{ Attributes::ZERO } noexcept -> std::convertible_to<typename Attributes::score_t const>;
+ };
+ 
+@@ -75,7 +75,7 @@ template<STEPWISE_COLOR_QUADRIPARTITION_SCORE_ATTRIBUTES Attributes> class Stepw
+ public:
+ 	using Color = Attributes::Color;
+ 	using score_t = Attributes::score_t;
+-	using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, Attributes::template Scheduler>;
++	using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, thread_pool::SimpleScheduler>;
+ 	using Tree = common::AnnotatedBinaryTree;
+ 	static inline string const LEAF_ID = Tree::LEAF_ID;
+ 	static inline score_t const ZERO = Attributes::ZERO;
+@@ -310,7 +310,7 @@ template<STEPWISE_COLOR_NNI_ATTRIBUTES Attributes> class StepwiseColorNNI : publ
+ public:
+ 	using Color = Attributes::Color;
+ 	using score_t = Color::score_t;
+-	using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, Attributes::template Scheduler>;
++	using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, thread_pool::SimpleScheduler>;
+ 	using Tree = common::AnnotatedBinaryTree;
+ 	static inline score_t const ZERO = Color::ZERO;
+ 	static inline score_t constexpr EPSILON = Color::EPSILON;
+diff --git a/src/optimization_algorithm.hpp b/src/optimization_algorithm.hpp
+index 19082b0..f08faa4 100644
+--- a/src/optimization_algorithm.hpp
++++ b/src/optimization_algorithm.hpp
+@@ -241,9 +241,9 @@ public:
+ 	using TaxonOrder = Attributes::TaxonOrder;
+ 	using Data = Color::SharedConstData;
+ 	template<typename T> using Scheduler = thread_pool::SimpleScheduler<T>;
+-	using ThreadPool = thread_pool::ThreadPool<score_t, Scheduler>;
++	using ThreadPool = thread_pool::ThreadPool<score_t, thread_pool::SimpleScheduler>;
+ 	using Placement = Attributes::Placement;
+-	using ThreadPool3 = thread_pool::ThreadPool<std::array<score_t, 3>, Scheduler>;
++	using ThreadPool3 = thread_pool::ThreadPool<std::array<score_t, 3>, thread_pool::SimpleScheduler>;
+ 	using Recursive = RecursivePlacement<Placement>;
+ 	using NNIAlg = Attributes::NNIAlg;
+ 	using SPR44Alg = Attributes::SPR44Alg;
+diff --git a/src/placement_algorithm.hpp b/src/placement_algorithm.hpp
+index 39695bd..366098f 100644
+--- a/src/placement_algorithm.hpp
++++ b/src/placement_algorithm.hpp
+@@ -25,7 +25,7 @@ template<class T> concept PLACEMENT_ALGORITHM = requires(T t, typename T::Color
+ 
+ template<class Attributes> concept STEPWISE_COLOR_PLACEMENT_ATTRIBUTES = requires{
+ 	requires stepwise_colorable::STEPWISE_COLORABLE<typename Attributes::Color>;
+-	requires thread_pool::SCHEDULER<Attributes::template Scheduler, typename Attributes::Color::score_t>;
++	requires thread_pool::SCHEDULER<thread_pool::SimpleScheduler, typename Attributes::Color::score_t>;
+ };
+ 
+ template<stepwise_colorable::STEPWISE_COLORABLE SC> struct StepwiseColorPlacementDefaultAttributes{
+@@ -41,7 +41,7 @@ template<STEPWISE_COLOR_PLACEMENT_ATTRIBUTES Attributes> class StepwiseColorPlac
+ public:
+ 	using Color = Attributes::Color;
+ 	using score_t = Color::score_t;
+-	using ThreadPool = thread_pool::ThreadPool<score_t, Attributes::template Scheduler>;
++	using ThreadPool = thread_pool::ThreadPool<score_t, thread_pool::SimpleScheduler>;
+ 	using Tree = common::AnnotatedBinaryTree;
+ 	static inline string const NO_PLACE = Tree::TRIPARTITION_SCORE;
+ 	static inline string const PLACE_ABOVE = "PLACE_ABOVE";
+diff --git a/src/quadripartition_support.hpp b/src/quadripartition_support.hpp
+index 063523f..9949251 100644
+--- a/src/quadripartition_support.hpp
++++ b/src/quadripartition_support.hpp
+@@ -352,8 +352,8 @@ public:
+ 	using Color = Attributes::Color;
+ 	using Data = Color::SharedConstData;
+ 	template<typename T> using Scheduler = thread_pool::SimpleScheduler<T>;
+-	template<typename T> using ThreadPool3 = thread_pool::ThreadPool<std::array<T, 3>, Scheduler>;
+-	template<QUADRIPARTITION_SUPPORT Support> using QuadripartitionScore = typename Attributes::QuadripartitionScore<Support>;
++	template<typename T> using ThreadPool3 = thread_pool::ThreadPool<std::array<T, 3>, thread_pool::SimpleScheduler>;
++	template<QUADRIPARTITION_SUPPORT Support> using QuadripartitionScore = typename Attributes::template QuadripartitionScore<Support>;
+ 
+ 	template<typename Support, typename Color> static void annotate(Color& color, Data const& data, Tree& tree, size_t nThreads, int verbose) {
+ 		Log log(verbose);
+@@ -361,8 +361,9 @@ public:
+ 		
+ 		Random random;
+ 		Support::template Data<Color>::staticInitialize(random, data.nElements());
+-		ThreadPool3<typename Support::template Data<Color> > threadpool(nThreads, 0, data.nElements());
+-		QuadripartitionScore<Support> qs(color, threadpool, tree, verbose);
++		using Score = QuadripartitionScore<Support>;
++		typename Score::ThreadPool threadpool(nThreads, 0, data.nElements());
++		Score qs(color, threadpool, tree, verbose);
+ 		qs.labelTree();
+ 		if constexpr (QUADRIPARTITION_SUPPORT_POSTPROCESS<Support>) Support::postProcess(tree);
+ 	}
+diff --git a/src/quadripartition_support_spr44.hpp b/src/quadripartition_support_spr44.hpp
+index 93ab709..2d88592 100644
+--- a/src/quadripartition_support_spr44.hpp
++++ b/src/quadripartition_support_spr44.hpp
+@@ -159,8 +159,8 @@ namespace quadripartition_support_spr44 {
+ 		using Color = Attributes::Color;
+ 		using Data = Color::SharedConstData;
+ 		template<typename T> using Scheduler = thread_pool::SimpleScheduler<T>;
+-		template<typename T> using ThreadPool3 = thread_pool::ThreadPool<std::array<T, 3>, Scheduler>;
+-		template<QUADRIPARTITION_SUPPORT_SPR44 Support> using QuadripartitionScore = typename Attributes::QuadripartitionScore<Support>;
++		template<typename T> using ThreadPool3 = thread_pool::ThreadPool<std::array<T, 3>, thread_pool::SimpleScheduler>;
++		template<QUADRIPARTITION_SUPPORT_SPR44 Support> using QuadripartitionScore = typename Attributes::template QuadripartitionScore<Support>;
+ 
+ 		template<QUADRIPARTITION_SUPPORT_SPR44 Support, typename Color> requires QUADRIPARTITION_SUPPORT_SPR44_STEPWISE_COLORABLE<Support, Color> static void annotate(Color& color, Data const& data, Tree& tree, size_t nThreads, int verbose) {
+ 			Log log(verbose);
+@@ -168,8 +168,9 @@ namespace quadripartition_support_spr44 {
+ 
+ 			Random random;
+ 			Support::template Data<Color>::staticInitialize(random, data.nElements());
+-			ThreadPool3<typename Support::template Data<Color> > threadpool(nThreads, 0, data.nElements());
+-			QuadripartitionScore<Support> qs(color, threadpool, tree, verbose);
++			using Score = QuadripartitionScore<Support>;
++			typename Score::ThreadPool threadpool(nThreads, 0, data.nElements());
++			Score qs(color, threadpool, tree, verbose);
+ 			qs.labelTree(Support::template Data<Color>::N_BOOTSTRAPS);
+ 		}
+ 	};
+diff --git a/src/spr44.hpp b/src/spr44.hpp
+index d68df16..a8bc9a6 100644
+--- a/src/spr44.hpp
++++ b/src/spr44.hpp
+@@ -43,7 +43,7 @@ namespace spr44_algorithm {
+ 
+ 	template<class Attributes> concept STEPWISE_COLOR_QUADRIPARTITION_SCORE_ATTRIBUTES = requires(typename Attributes::score_t score) {
+ 		requires stepwise_colorable::QUADRIPARTITION_STEPWISE_COLORABLE<typename Attributes::Color>;
+-		requires thread_pool::SCHEDULER<Attributes::template Scheduler, typename Attributes::Color::score_t>;
++		requires thread_pool::SCHEDULER<thread_pool::SimpleScheduler, typename Attributes::Color::score_t>;
+ 	{ Attributes::ZERO } noexcept -> std::convertible_to<typename Attributes::score_t const>;
+ 	};
+ 
+@@ -104,7 +104,7 @@ namespace spr44_algorithm {
+ 	public:
+ 		using Color = Attributes::Color;
+ 		using score_t = Attributes::score_t;
+-		using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, Attributes::template Scheduler>;
++		using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, thread_pool::SimpleScheduler>;
+ 		using Tree = common::AnnotatedBinaryTree;
+ 		static inline string const PLACE44 = "PLACE44";
+ 		static inline string const PlaceAns = "PlaceAns";
+@@ -604,7 +604,7 @@ namespace spr44_algorithm {
+ 	public:
+ 		using Color = Attributes::Color;
+ 		using score_t = Color::score_t;
+-		using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, Attributes::template Scheduler>;
++		using ThreadPool = thread_pool::ThreadPool<array<score_t, 3>, thread_pool::SimpleScheduler>;
+ 		using Tree = common::AnnotatedBinaryTree;
+ 		static inline score_t const ZERO = Color::ZERO;
+ 		static inline score_t constexpr EPSILON = Color::EPSILON;
 diff --git a/src/std_include.hpp b/src/std_include.hpp
 index dd64d48..6344d9f 100644
 --- a/src/std_include.hpp
