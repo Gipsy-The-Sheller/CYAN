@@ -1,0 +1,268 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c007952..6eea14f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -167,13 +167,16 @@ elseif (APPLE)
+         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mmacosx-version-min=10.5")
+     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+         #Don't set --target parameter for Gnu C++ on MacOS
+-    elseif (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
+-        #Don't do this for MacOS BigSur or later
+-        add_definitions("--target=x86_64-apple-macos10.7")
+-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --target=x86_64-apple-macos10.7")
+-    else()
+-    add_definitions("--target=x86_64-apple-macos10.7")
+-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --target=x86_64-apple-macos10.8")
++    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
++        #The --target workaround only applies to Intel Macs.
++        if (CMAKE_HOST_SYSTEM_VERSION VERSION_LESS 20)
++            #Don't do this for MacOS BigSur or later
++            add_definitions("--target=x86_64-apple-macos10.7")
++            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --target=x86_64-apple-macos10.7")
++        else()
++            add_definitions("--target=x86_64-apple-macos10.7")
++            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --target=x86_64-apple-macos10.8")
++        endif()
+     endif()
+     SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+ elseif (UNIX)
+@@ -189,6 +192,15 @@ else()
+     message("Target OS          : Unknown and untested yet")
+ endif()
+ 
++# The bundled vectorclass library (Agner Fog 1.25) only supports x86.
++# On other architectures, the scalar implementations are used instead.
++set(DECENTTREE_X86 FALSE)
++if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$")
++    set(DECENTTREE_X86 TRUE)
++endif()
++message("x86 target          : ${DECENTTREE_X86}")
++
++
+ ##################################################################
+ # Setup compiler, currently supported GCC, CLANG, MSVC, and ICC
+ ##################################################################
+@@ -545,7 +557,7 @@ if (DECENTTREE_FLAGS MATCHES "fma") # AVX+FMA instruction set
+     message("Vectorization : AVX+FMA")
+     add_definitions(-D__SSE3 -D__AVX) # define both SSE3 and AVX directive
+     set(COMBINED_FLAGS "${COMBINED_FLAGS} ${FMA_FLAGS}")
+-elseif (DECENTTREE_FLAGS MATCHES "avx") # AVX instruction set
++elseif (DECENTTREE_FLAGS MATCHES "(^| )avx( |$)") # AVX instruction set
+     message("Vectorization : AVX")
+     add_definitions(-D__SSE3 -D__AVX) # define both SSE3 and AVX directive
+     set(COMBINED_FLAGS "${COMBINED_FLAGS} ${AVX_FLAGS}")
+@@ -634,11 +646,15 @@ endif(ZLIB_FOUND)
+ # subdirectories containing necessary libraries for the build
+ ##################################################################
+ 
+-add_subdirectory(vectorclass)
++if (DECENTTREE_X86)
++    add_subdirectory(vectorclass)
++    add_compile_definitions(USE_VECTORCLASS_LIBRARY=1)
++else()
++    add_compile_definitions(USE_VECTORCLASS_LIBRARY=0)
++endif()
+ LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")
+ 
+ add_compile_definitions(USE_PROGRESS_DISPLAY=1)
+-add_compile_definitions(USE_VECTORCLASS_LIBRARY=1)
+ add_compile_definitions(USE_GZSTREAM=1)
+ add_compile_definitions(DECENT_TREE=1)
+ 
+@@ -699,7 +715,7 @@ if(Backtrace_FOUND)
+   target_link_libraries(decenttree ${Backtrace_LIBRARY})
+ endif(Backtrace_FOUND)
+ 
+-if (NOT DECENTTREE_FLAGS MATCHES "avx" AND NOT DECENTTREE_FLAGS MATCHES "fma")
++if (DECENTTREE_X86 AND NOT DECENTTREE_FLAGS MATCHES "avx" AND NOT DECENTTREE_FLAGS MATCHES "fma")
+     if (NOT DECENTTREE_FLAGS MATCHES "nosse")
+         set_target_properties(decenttree vectorclass PROPERTIES COMPILE_FLAGS "${SSE_FLAGS}")
+     endif()
+@@ -728,7 +744,7 @@ if (DECENTTREE_FLAGS MATCHES "libcxx")
+     set(STD_LIB "c++abi")
+ endif()
+ 
+-if(CLANG AND WIN32)
++if(CLANG AND WIN32 AND DECENTTREE_X86)
+     if (BINARY32)
+         target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
+     else()
+@@ -737,7 +753,11 @@ if(CLANG AND WIN32)
+ endif()
+ 
+ # basic linking librararies
+-target_link_libraries(decenttree vectorclass
++set(DECENTTREE_LINK_LIBS "")
++if (DECENTTREE_X86)
++    list(APPEND DECENTTREE_LINK_LIBS vectorclass)
++endif()
++target_link_libraries(decenttree ${DECENTTREE_LINK_LIBS}
+     ${PLATFORM_LIB} ${STD_LIB})
+ 
+ # setup the executable name
+@@ -769,8 +789,11 @@ if (WIN32)
+     endif()
+ endif()
+ 
+-add_subdirectory(example)
+-add_subdirectory(pydecenttree)
++option(DECENTTREE_BUILD_EXTRAS "Build DecentTree examples and Python bindings" OFF)
++if (DECENTTREE_BUILD_EXTRAS)
++    add_subdirectory(example)
++    add_subdirectory(pydecenttree)
++endif()
+ 
+ ##############################################################
+ # add the install targets
+diff --git a/auctionmatrix.h b/auctionmatrix.h
+index 4c64834..baea47c 100644
+--- a/auctionmatrix.h
++++ b/auctionmatrix.h
+@@ -38,7 +38,7 @@ namespace StartTree {
+             const T*   rowData   = entriesSorted.rows[row];
+             const int* toCluster = entryToCluster.rows[row];
+             size_t i = 0;
+-            int   bestOtherRow;
++            int   bestOtherRow = notMappedToRow;
+             for (i=0; rowData[i]<infiniteDistance; ++i) {
+                 bestOtherRow = clusterToRow[toCluster[i]];
+                 if (bestOtherRow != notMappedToRow) {
+@@ -46,18 +46,21 @@ namespace StartTree {
+                 }
+             }
+             if (rowData[i] < infiniteDistance) {
+-                T     bestV = rowData[i];
+-                int   secondBestOtherRow;
+-                for (; rowData[i]<infiniteDistance; ++i) {
+-                    secondBestOtherRow = clusterToRow[toCluster[i]];
++                T      bestV     = rowData[i];
++                size_t bestIndex = i;
++                //Find the second-best live partner, starting after the best.
++                //The bid is the gap between the best and second-best
++                //distances (a larger gap is a better bid, and is more
++                //negative, so the minimum bid wins in getMinimumEntry).
++                for (i=bestIndex+1; rowData[i]<infiniteDistance; ++i) {
++                    int secondBestOtherRow = clusterToRow[toCluster[i]];
+                     if (secondBestOtherRow != notMappedToRow) {
++                        pos.column = (bestOtherRow < row) ? bestOtherRow : row;
++                        pos.row    = (bestOtherRow < row) ? row : bestOtherRow;
++                        pos.value  = bestV - rowData[i];
+                         break;
+                     }
+                 }
+-                if (rowData[i] < infiniteDistance) {
+-                    pos.row   = bestOtherRow;
+-                    pos.value = bestV - rowData[secondBestOtherRow];
+-                }
+                 if (1<i) {
+                     purgeRow(row);
+                 }
+diff --git a/bionj2.cpp b/bionj2.cpp
+index a8a6a92..561dfa7 100644
+--- a/bionj2.cpp
++++ b/bionj2.cpp
+@@ -91,6 +91,11 @@ void addBioNJ2020TreeBuilders(Registry& f) {
+                                                 " (Simonsen, Mailund, Pedersen [2011])");
+     ADVERTISE(VectorizedFancyNJMatrix<NJFloat>, "ONJ-R-V",  "Rapid Neighbour Joining (a rival version)"
+                                                 " (Simonsen, Mailund, Pedersen [2011]) (Vectorized)");
++    #else
++    //Keep the -V names available on architectures where vectorclass is not
++    //supported, by mapping them to the equivalent scalar implementations.
++    ADVERTISE(RapidNJ,               "NJ-R-V",  "Rapid Neighbour Joining (scalar fallback)");
++    ADVERTISE(FancyNJMatrix<NJFloat>,"ONJ-R-V", "Rapid Neighbour Joining (a rival version, scalar fallback)");
+     #endif
+ 
+     #if USE_VECTORCLASS_LIBRARY
+@@ -102,6 +107,8 @@ void addBioNJ2020TreeBuilders(Registry& f) {
+                                                " Simonson Mailund Pedersen [2011])");
+     #if USE_VECTORCLASS_LIBRARY
+     ADVERTISE(VectorBIONJ,          "BIONJ-V", "Vectorized BIONJ (Gascuel, Cong [2009])");
++    #else
++    ADVERTISE(RapidBIONJ,           "BIONJ-V", "BIONJ (scalar fallback on this architecture)");
+     #endif
+ 
+     //ADVERTISE(UPGMA_Matrix<NJFloat>,"UPGMA",   "UPGMA (Sokal, Michener [1958])");
+diff --git a/starttree.cpp b/starttree.cpp
+index 3621ac8..6b4c8e2 100644
+--- a/starttree.cpp
++++ b/starttree.cpp
+@@ -150,7 +150,7 @@ BenchmarkingTreeBuilder::BenchmarkingTreeBuilder(Registry& f, const char* nameTo
+                                                  const char *descriptionToGive)
+     : name(nameToUse), description(descriptionToGive)
+     , isOutputToBeZipped(false), silent(false), precision(4)
+-    , subtreeOnly(false) {
++    , subtreeOnly(false), isRooted(false) {
+     for (auto it=f.mapOfTreeBuilders.begin(); it!=f.mapOfTreeBuilders.end(); ++it) {
+         if (!it->second->getName().empty()) {
+             builders.push_back(it->second);
+diff --git a/starttree.h b/starttree.h
+index 74a6573..fc1c7b3 100644
+--- a/starttree.h
++++ b/starttree.h
+@@ -388,7 +388,7 @@ namespace StartTree
+         Builder(const char* nameToUse, const char *descriptionToGive)
+         : name(nameToUse), description(descriptionToGive), silent(false)
+         , isOutputToBeAppended(false), isOutputToBeZipped(false)
+-        , precision(6), subtreeOnly(false) {
++        , precision(6), isRooted(false), subtreeOnly(false) {
+         }
+ 
+         /**
+diff --git a/upgma.h b/upgma.h
+index 914ddbb..5107e81 100644
+--- a/upgma.h
++++ b/upgma.h
+@@ -98,7 +98,7 @@ typedef float    NJFloat;
+ const   NJFloat  infiniteDistance = (NJFloat)(1e+36);
+ const   intptr_t notMappedToRow = -1;
+ 
+-#ifdef   USE_VECTORCLASS_LIBRARY
++#if defined(USE_VECTORCLASS_LIBRARY) && USE_VECTORCLASS_LIBRARY
+ #include <vectorclass/vectorclass.h> //for Vec4d and Vec4db vector classes
+ typedef  Vec8f    FloatVector;
+ typedef  Vec8fb   FloatBoolVector;
+diff --git a/utils/hammingdistance.h b/utils/hammingdistance.h
+index a825bfe..6fe9960 100644
+--- a/utils/hammingdistance.h
++++ b/utils/hammingdistance.h
+@@ -202,8 +202,8 @@ inline uint64_t conventionalCountBitsSetInEither
+     for (size_t i=0; i<count; ++i) {
+         uint64_t bitsInEither = a[i] | b[i];
+         uint64_t delta;
+-        #if (defined (__GNUC__) || defined(__clang__)) && !defined(CLANG_UNDER_VS)
+-            __asm("popcntq %1, %0" : "=r"(delta) : "r"(bitsInEither) : );
++        #if defined (__GNUC__) || defined(__clang__)
++            delta = static_cast<uint64_t>(__builtin_popcountll(bitsInEither));
+         #else
+             delta = _mm_popcnt_u64(bitsInEither);
+         #endif
+@@ -226,7 +226,7 @@ inline uint64_t vectorHammingDistance(char unknown, const char* sequenceA,
+  *        functions are NOT to be vectorized.
+  */
+ inline uint64_t countBitsSetInEither
+-    (copst uint64_t* a, const uint64_t* b, size_t count) {
++    (const uint64_t* a, const uint64_t* b, size_t count) {
+     return conventionalCountBitsSetInEither(a, b, count);
+ }
+ #else
+@@ -400,7 +400,7 @@ uint64_t countBitsSetInEitherTemplate
+                                           const char* sequenceB, size_t seqLen ) {
+         return conventionalHammingDistance(unknown, sequenceA, sequenceB, seqLen);
+     }
+-    inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b,
++    inline uint64_t countBitsSetInEither(const uint64_t* a, const uint64_t* b,
+                                        size_t count /*in uint64_t*/) {
+         return conventionalCountBitsSetInEither(a,b,count);
+     }
+diff --git a/utils/vectortypes.h b/utils/vectortypes.h
+index 310435f..78c5c70 100644
+--- a/utils/vectortypes.h
++++ b/utils/vectortypes.h
+@@ -10,6 +10,7 @@
+ #include <vector>
+ #include <algorithm> //for std::transform
+ #include <string>    //for std::string
++#include <cstdint>   //for intptr_t, uint64_t
+ 
+ /**
+         vector of double number

@@ -146,6 +146,7 @@ and cross-platform tools.
 | ModelTest-NG | 0.1.7 | Windows x64, Linux x64/arm64, macOS arm64 | [ddarriba/modeltest](https://github.com/ddarriba/modeltest) tag `v0.1.7` | GPL-3.0 (libpll AGPL-3.0) |
 | RAxML-NG | 1.2.2 | Windows x64, Linux x64/arm64, macOS arm64 | [amkozlov/raxml-ng](https://github.com/amkozlov/raxml-ng) tag `1.2.2` | AGPL-3.0 |
 | MPBoot | 1.1.1 | Windows x64, Linux x64 | [diepthihoang/mpboot](https://github.com/diepthihoang/mpboot) commit `2864869` | GPL-2.0 |
+| DecentTree | 1.0.0 | all five targets | [iqtree/decenttree](https://github.com/iqtree/decenttree) commit `c106c86` | GPL-2.0 |
 | YGBlocks | 1.0.0 | Windows x64, Linux x64/arm64, macOS arm64 | local MIT implementation | MIT |
 
 LSD2 is vendored unmodified from upstream commit
@@ -216,6 +217,34 @@ the upstream release tag is `v1.2`. The vendored libpll needs two fixes:
 
 Only x86-64 Windows and Linux are built. The IQ-TREE 1.x code uses x86
 CPUID and AVX vector classes, so no ARM64 package is offered.
+
+### DecentTree
+
+DecentTree is the distance-matrix tree builder from the IQ-TREE project. It
+reads `.mldist` matrices and writes Newick trees. YR-MPE invokes it with
+`-in`, `-out`, `-t` and `-no-banner`; the algorithms it exposes are
+`BIONJ-R`, `BIONJ-V`, `NJ-R-D`, `ONJ-R`, `ONJ-R-V` and `AUCTION`.
+
+CYAN vendors upstream commit `c106c86a` (post-`v1.0.0`, README-only changes)
+and applies `patches/decenttree-portability.patch`:
+
+- the `Builder` constructors left `isRooted` uninitialised. Depending on the
+  stack contents this crashed `BIONJ`, `NJ-R`, `BIONJ-R`, `BIONJ-V`,
+  `NJ-R-D` and `AUCTION`, or made `ONJ-R` emit rooted trees by accident. It
+  is now `false`, so output is unrooted (degree-3 root), as is standard for
+  distance-based construction;
+- the `AUCTION` second-best search never advanced past the best distance and
+  reported the wrong row pair, which could drop a taxon from the tree. The
+  bid and pair are now computed from the actual best and second-best
+  partners;
+- `<cstdint>` and `__builtin_popcountll` replace platform-specific
+  assumptions, and the x86-only vectorclass library is disabled on ARM. The
+  `-V` names are aliased to the scalar implementations there, so the YR-MPE
+  command line is identical on every target.
+
+Windows and Linux packages are static. The package root is `decenttree/`,
+so extracting into `YR_MPE/bin/` yields
+`YR_MPE/bin/decenttree/decenttree(.exe)`.
 
 ### YGBlocks
 
