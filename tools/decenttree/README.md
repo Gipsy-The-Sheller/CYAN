@@ -64,7 +64,8 @@ Algorithms exposed by YR-MPE:
 - Windows x86-64 and Linux x86-64 build the vectorised implementations.
 - Windows arm64, Linux arm64 and macOS arm64 use the scalar implementations
   and the `-V` aliases.
-- OpenMP is used when the toolchain provides it.
+- Windows and Linux builds use OpenMP. The macOS build is serial, so the
+  package does not depend on a Homebrew `libomp` installation.
 
 ## Files
 

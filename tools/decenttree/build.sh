@@ -57,6 +57,11 @@ cmake_args=(
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DDECENTTREE_FLAGS="$dt_flags"
 )
+if [[ "$CYAN_PLATFORM" == macos ]]; then
+  # Homebrew's libomp is not part of a stock macOS installation. Build the
+  # serial implementation rather than depending on a non-system dylib.
+  cmake_args+=(-DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=TRUE)
+fi
 cmake "${cmake_args[@]}"
 cmake --build "$cmake_build" --target decenttree --parallel "$CYAN_JOBS"
 
@@ -90,6 +95,9 @@ standard representation for distance-based tree construction.
 On ARM, the x86-only vectorclass library is not used; NJ-R-V, BIONJ-V and
 ONJ-R-V are aliases for the equivalent scalar implementations. On x86 the
 vectorised versions are used.
+
+Windows and Linux builds use OpenMP. The macOS build is serial so that the
+binary does not depend on Homebrew's libomp.
 EOF
 
 bash "$CYAN_ROOT/scripts/package_tool.sh" "$tool" "$stage"

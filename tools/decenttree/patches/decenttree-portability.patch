@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c007952..6eea14f 100644
+index c007952..64d07e9 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -167,13 +167,16 @@ elseif (APPLE)
@@ -42,7 +42,34 @@ index c007952..6eea14f 100644
  ##################################################################
  # Setup compiler, currently supported GCC, CLANG, MSVC, and ICC
  ##################################################################
-@@ -545,7 +557,7 @@ if (DECENTTREE_FLAGS MATCHES "fma") # AVX+FMA instruction set
+@@ -454,14 +466,19 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
+             #But I don't as yet know how to tell CMake to do that. -James B. 23-Jul-2020
+         else()
+             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+-            if (APPLE)            
+-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor")
+-                set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/bin")
++            if (OPENMP_FOUND)
++                if (APPLE)
++                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor")
++                    set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/bin")
++                endif()
++                if (APPLE OR WIN32 )
++                    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lomp")
++                endif()
++                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
++            else()
++                #No OpenMP runtime: build the serial implementation.
++                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+             endif()
+-            if (APPLE OR WIN32 )            
+-                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lomp")
+-            endif() 
+-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
+         endif()
+     endif()
+ else()
+@@ -545,7 +562,7 @@ if (DECENTTREE_FLAGS MATCHES "fma") # AVX+FMA instruction set
      message("Vectorization : AVX+FMA")
      add_definitions(-D__SSE3 -D__AVX) # define both SSE3 and AVX directive
      set(COMBINED_FLAGS "${COMBINED_FLAGS} ${FMA_FLAGS}")
@@ -51,7 +78,7 @@ index c007952..6eea14f 100644
      message("Vectorization : AVX")
      add_definitions(-D__SSE3 -D__AVX) # define both SSE3 and AVX directive
      set(COMBINED_FLAGS "${COMBINED_FLAGS} ${AVX_FLAGS}")
-@@ -634,11 +646,15 @@ endif(ZLIB_FOUND)
+@@ -634,11 +651,15 @@ endif(ZLIB_FOUND)
  # subdirectories containing necessary libraries for the build
  ##################################################################
  
@@ -69,7 +96,7 @@ index c007952..6eea14f 100644
  add_compile_definitions(USE_GZSTREAM=1)
  add_compile_definitions(DECENT_TREE=1)
  
-@@ -699,7 +715,7 @@ if(Backtrace_FOUND)
+@@ -699,7 +720,7 @@ if(Backtrace_FOUND)
    target_link_libraries(decenttree ${Backtrace_LIBRARY})
  endif(Backtrace_FOUND)
  
@@ -78,7 +105,7 @@ index c007952..6eea14f 100644
      if (NOT DECENTTREE_FLAGS MATCHES "nosse")
          set_target_properties(decenttree vectorclass PROPERTIES COMPILE_FLAGS "${SSE_FLAGS}")
      endif()
-@@ -728,7 +744,7 @@ if (DECENTTREE_FLAGS MATCHES "libcxx")
+@@ -728,7 +749,7 @@ if (DECENTTREE_FLAGS MATCHES "libcxx")
      set(STD_LIB "c++abi")
  endif()
  
@@ -87,7 +114,7 @@ index c007952..6eea14f 100644
      if (BINARY32)
          target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
      else()
-@@ -737,7 +753,11 @@ if(CLANG AND WIN32)
+@@ -737,7 +758,11 @@ if(CLANG AND WIN32)
  endif()
  
  # basic linking librararies
@@ -100,7 +127,7 @@ index c007952..6eea14f 100644
      ${PLATFORM_LIB} ${STD_LIB})
  
  # setup the executable name
-@@ -769,8 +789,11 @@ if (WIN32)
+@@ -769,8 +794,11 @@ if (WIN32)
      endif()
  endif()
  
