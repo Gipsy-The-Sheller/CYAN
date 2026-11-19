@@ -1,0 +1,56 @@
+diff --git a/src/common.hpp b/src/common.hpp
+index bbe406a..11ed6af 100644
+--- a/src/common.hpp
++++ b/src/common.hpp
+@@ -108,7 +108,8 @@ public:
+ 	}
+ 
+ 	template<bool isGlobal> static void displayAll(std::ostream& out, vector<Change>& changes) {
+-		for (const string& block : versioning<isGlobal>(changes) | std::views::reverse) out << block;
++		vector<string> blocks = versioning<isGlobal>(changes);
++		for (auto it = blocks.rbegin(); it != blocks.rend(); ++it) out << *it;
+ 	}
+ 
+ 	string static getGlobalVersion() {
+diff --git a/src/documentation.hpp b/src/documentation.hpp
+index 6168d59..a8113c9 100644
+--- a/src/documentation.hpp
++++ b/src/documentation.hpp
+@@ -62,7 +62,7 @@ The output in is Newick format and gives:
+ 	virtual string exampleInput() const noexcept = 0;
+ 
+ 	virtual string execution() const noexcept {
+-		return std::format(R"YOHANETYO(# EXECUTION
++		string text = R"YOHANETYO(# EXECUTION
+ ASTER2 currently has no GUI. You need to run it through the command-line. In a terminal/PowerShell, go to the directory (location) where you have downloaded ASTER2 and issue the following command:
+ 
+ ```
+@@ -107,7 +107,15 @@ ASTER2 also allows rooting at an given outgroup taxon:
+ ```
+ bin/{0} --root YOUR_OUTGROUP INPUT_FILE
+ ```
+-)YOHANETYO", programName(), exampleInput());
++)YOHANETYO";
++		const auto replaceAll = [](string& str, const string& from, const string& to) {
++			for (size_t pos = 0; (pos = str.find(from, pos)) != string::npos; pos += to.size()) {
++				str.replace(pos, from.size(), to);
++			}
++		};
++		replaceAll(text, "{0}", programName());
++		replaceAll(text, "{1}", exampleInput());
++		return text;
+ 	}
+ 
+ 	virtual string changes() const noexcept {
+diff --git a/src/std_include.hpp b/src/std_include.hpp
+index dd64d48..6344d9f 100644
+--- a/src/std_include.hpp
++++ b/src/std_include.hpp
+@@ -7,7 +7,6 @@
+ #include<cmath>
+ #include<chrono>
+ #include<concepts>
+-#include<format>
+ #include<fstream>
+ #include<functional>
+ #include<future>

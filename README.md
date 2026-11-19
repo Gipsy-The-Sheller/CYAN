@@ -148,6 +148,9 @@ and cross-platform tools.
 | MPBoot | 1.1.1 | Windows x64, Linux x64 | [diepthihoang/mpboot](https://github.com/diepthihoang/mpboot) commit `2864869` | GPL-2.0 |
 | DecentTree | 1.0.0 | all five targets | [iqtree/decenttree](https://github.com/iqtree/decenttree) commit `c106c86` | GPL-2.0 |
 | YGBlocks | 1.0.0 | Windows x64, Linux x64/arm64, macOS arm64 | local MIT implementation | MIT |
+| Clustal Omega | 1.2.4 | all five targets | [GSLBiotech/clustal-omega](https://github.com/GSLBiotech/clustal-omega) commit `d21fab8` | GPL-2.0 (argtable2 LGPL-2.0) |
+| MUSCLE | 5.3 | all five targets | [rcedgar/muscle](https://github.com/rcedgar/muscle) commit `29aa067` | GPL-3.0 |
+| ASTER2 | 2.6.1 | all five targets | [chaoszhang/ASTER2](https://github.com/chaoszhang/ASTER2) commit `002c13c` | AGPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -259,6 +262,52 @@ The package root is `Gblocks/` and the binary is `Gblocks(.exe)`, so it
 extracts directly over `YR_MPE/bin/Gblocks/`. The `-p=t` report is an
 interleaved PHYLIP-style alignment of the original data: kept positions are
 uppercase, removed positions lowercase, and `-` gaps become `.`.
+
+### Clustal Omega
+
+Clustal Omega 1.2.4 (`d21fab8`, 2018) is built from the upstream CMake
+branch. It requires argtable2; CYAN vendors argtable2 2.13 and links it
+statically. Three portability fixes are applied to argtable2:
+`EOVERFLOW` is renamed to `EARGOVERFLOW` (it is an errno macro on modern
+systems), the bundled `getopt` declarations are given modern prototypes, and
+`arg_int.c` includes `<ctype.h>`.
+
+Windows and Linux builds are static. OpenMP is enabled on Windows x64 and
+Linux; Windows arm64 and macOS build serial so no external OpenMP runtime is
+needed. The package root is `clustalo/`, matching
+`YR_MPE/bin/clustalo/clustalo(.exe)`.
+
+### MUSCLE
+
+MUSCLE 5.3 is built from the upstream HEAD after the `v5.3` tag (`29aa067`,
+2026-08-29), which adds the mingw-w64 GCC and aarch64 fixes needed on the
+CYAN targets. The source list comes from the upstream Visual Studio project,
+but every platform is compiled with GCC or Clang; `-march=native` is not
+used.
+
+MUSCLE requires OpenMP. Windows and Linux binaries link it statically. On
+macOS the build uses Homebrew libomp, copies `libomp.dylib` into the package
+and rewrites its install name to `@loader_path/libomp.dylib`, so Homebrew is
+not needed at run time. The package root is `muscle5/`, matching
+`YR_MPE/bin/muscle5/muscle(.exe)`.
+
+### ASTER2
+
+ASTER2 is the C++20 rewrite of ASTER. CYAN vendors commit `002c13c`
+(2026-11-18) and ships the two entry points YR-MPE uses: `astral`
+(ASTRAL-IV/wASTRAL, with `--mode` selecting the weighting) and `caster`
+(CASTER-site). ASTER2 is alpha upstream; options and annotations may change.
+
+The experimental `trial`/`wtrial`/`wcaster` tools, `sister` and `astral-iad`
+are not packaged. The trial tools currently fail on Windows because their
+temporary `fasta2ref` list uses POSIX `/tmp` paths that native Windows cannot
+reopen.
+
+`patches/aster2-portability.patch` replaces the single `<format>` use with
+ordinary string replacement and a `std::views::reverse` pipeline with reverse
+iterators, keeping the code buildable with GCC 11 on the Ubuntu 22.04 CI
+images. Windows and Linux binaries are static. The package root is `aster2/`
+(`aster2/astral(.exe)`, `aster2/caster(.exe)`).
 
 ### TrimAl
 
