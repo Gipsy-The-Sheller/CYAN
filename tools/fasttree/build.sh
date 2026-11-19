@@ -27,15 +27,17 @@ case "$CYAN_PLATFORM" in
   windows|linux) common_flags+=(-fopenmp-simd) ;;
 esac
 
-link_flags=()
+link_flags=""
 if [[ "$CYAN_PLATFORM" != macos ]]; then
-  link_flags+=(-static)
+  link_flags="-static"
 fi
 
 log "Building FastTree $version ($CYAN_PLATFORM $CYAN_ARCH)"
 (
   cd "$build"
-  "$CC" "${common_flags[@]}" "${link_flags[@]}" \
+  # link_flags is a string because macOS ships Bash 3.2, where expanding an
+  # empty array under `set -u` is an unbound-variable error.
+  "$CC" "${common_flags[@]}" $link_flags \
     -o "FastTree$CYAN_EXE" FastTree.c -lm
 )
 
@@ -45,7 +47,7 @@ if [[ "$CYAN_PLATFORM" == linux || "$CYAN_PLATFORM-$CYAN_ARCH" == windows-x64 ]]
   log "Building FastTreeMP (OpenMP)"
   (
     cd "$build"
-    "$CC" -DOPENMP -fopenmp "${common_flags[@]}" "${link_flags[@]}" \
+    "$CC" -DOPENMP -fopenmp "${common_flags[@]}" $link_flags \
       -o "FastTreeMP$CYAN_EXE" FastTree.c -lm
   )
 fi
