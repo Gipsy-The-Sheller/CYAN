@@ -1,0 +1,123 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -583,6 +583,12 @@
+ 
+ target_link_libraries(diamond ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+ 
++# MinGW needs the synchronization import library for WaitOnAddress /
++# WakeByAddressSingle (MSVC gets it from #pragma comment(lib, ...)).
++if(WIN32)
++  target_link_libraries(diamond synchronization)
++endif()
++
+ install(TARGETS diamond DESTINATION bin)
+ 
+ enable_testing()
+--- a/src/util/io/decompressor.h
++++ b/src/util/io/decompressor.h
+@@ -96,21 +96,21 @@
+ 
+ struct PassThrough : Decompressor {
+ 	size_t fread(void* buffer, size_t size, size_t count, FILE* stream) override {
+-#if defined(_MSC_VER) || defined(__APPLE__)
++#if defined(_MSC_VER) || defined(__APPLE__) || defined(_WIN32)
+ 		return std::fread(buffer, size, count, stream);
+ #else
+ 		return fread_unlocked(buffer, size, count, stream);
+ #endif
+ 	}
+ 	int fgetc(FILE* stream) override {
+-#if defined(_MSC_VER) || defined(__APPLE__)
++#if defined(_MSC_VER) || defined(__APPLE__) || defined(_WIN32)
+ 		return std::fgetc(stream);
+ #else
+ 		return fgetc_unlocked(stream);
+ #endif
+ 	}
+ 	ssize_t getdelim(char** buf, size_t* buf_size, char delimiter, FILE* fp) override {
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) || defined(_WIN32)
+ 		return getdelim_generic(buf, buf_size, delimiter, [fp] { return std::fgetc(fp); });
+ #else
+ 		return ::getdelim(buf, buf_size, delimiter, fp);
+--- a/src/util/system.h
++++ b/src/util/system.h
+@@ -48,7 +48,7 @@
+ #define UNLINK unlink
+ #define NO_INLINE __attribute__ ((noinline))
+ #define COLD __attribute__((cold))
+-#define UNLIKELY(x) __builtin_expect((long)x, 0)
++#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+ #define UNREACHABLE __builtin_unreachable();
+ 
+ #endif
+--- a/src/util/simd.cpp
++++ b/src/util/simd.cpp
+@@ -29,7 +29,7 @@
+ 
+ using std::string;
+ 
+-#ifdef _WIN32
++#ifdef _MSC_VER
+ #define cpuid(info,x)    __cpuidex(info,x,0)
+ #ifdef __SSE2__
+ inline uint64_t xgetbv0() {
+--- a/src/util/io/compressed_buffer.cpp
++++ b/src/util/io/compressed_buffer.cpp
+@@ -17,6 +17,7 @@
+ ****/
+ // SPDX-License-Identifier: GPL-3.0-or-later
+ 
++#include <cstdint>
+ #include <limits>
+ #include <stdexcept>
+ #include "compressed_buffer.h"
+--- a/src/util/system/system.cpp
++++ b/src/util/system/system.cpp
+@@ -114,7 +114,7 @@
+ 
+ string executable_path() {
+ 	char buf[4096];
+-#ifdef _MSC_VER
++#ifdef _WIN32
+ 	if (GetModuleFileNameA(NULL, buf, sizeof(buf)) == 0)
+ 		throw runtime_error("Error executing GetModuleFileNameA.");
+ 	return string(buf);
+@@ -126,7 +126,7 @@
+ }
+ 
+ bool exists(const std::string &file_name) {
+-#ifdef _MSC_VER
++#ifdef _WIN32
+ 	return GetFileAttributes(file_name.c_str()) != INVALID_FILE_ATTRIBUTES;
+ #else
+ 	struct stat buffer;
+--- a/src/search/hit_buffer.cpp
++++ b/src/search/hit_buffer.cpp
+@@ -225,7 +225,7 @@
+ 	using namespace std::placeholders;
+ 	if (config.trace_pt_membuf)
+ 		return;
+-#if !_MSC_VER && !__APPLE__
++#if !defined(_WIN32) && !defined(__APPLE__)
+ 	if (bin < bins() - 1) {
+ 		posix_fadvise(fileno(tmp_file_[bin + 1].file()), 0, 0, POSIX_FADV_SEQUENTIAL);
+ 		posix_fadvise(fileno(tmp_file_[bin + 1].file()), 0, 0, POSIX_FADV_WILLNEED);
+@@ -349,7 +349,7 @@
+ 		data_loading_ = data_finished_ = nullptr;
+ 		return;
+ 	}
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) || defined(_WIN32)
+ 	data_loading_ = new Hit[max_size];
+ 	data_finished_ = new Hit[max_size];	
+ #else
+@@ -377,7 +377,7 @@
+ 
+ void HitBuffer::free_buffer() {
+ 	if (!config.trace_pt_membuf) {
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) || defined(_WIN32)
+ 		delete[] data_loading_;
+ 		delete[] data_finished_;
+ #else

@@ -155,6 +155,9 @@ and cross-platform tools.
 | ASTER2 | 2.6.1 | all five targets | [chaoszhang/ASTER2](https://github.com/chaoszhang/ASTER2) commit `002c13c` | AGPL-3.0 |
 | TreeRecs | 1.3 | all five targets | [Gipsy-The-Sheller/Treerecs-dev](https://github.com/Gipsy-The-Sheller/Treerecs-dev) commit `0c68102` | AGPL-3.0 |
 | MAFFT | 7.505 | Windows x64 | [mafft.cbrc.jp](https://mafft.cbrc.jp/alignment/software/) | BSD-3-Clause (runtime GPL/LGPL) |
+| DIAMOND | 2.2.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bbuchfink/diamond](https://github.com/bbuchfink/diamond) tag `v2.2.9` | GPL-3.0 |
+| FastTree | 2.2.0 | all five targets | [morgannprice/fasttree](https://github.com/morgannprice/fasttree) commit `a780aa4` | GPL-3.0 |
+| IcyTree | `48ed43e` | static HTML (one package) | [tgvaughan/icytree](https://github.com/tgvaughan/icytree) commit `48ed43e` | GPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -368,6 +371,36 @@ The package root is `mafft/`, so it extracts to
 Clustal output, reordering, gap penalties, and `--thread 2` (which must match
 the single-threaded alignment byte for byte). `mafft.bat` does not propagate
 MAFFT's exit code, so every case validates its output instead.
+
+### DIAMOND
+
+DIAMOND 2.2.9 is built with CMake and the upstream runtime CPU dispatcher
+(generic/SSE4.1/AVX2 on x86, NEON on ARM64). Windows and Linux builds are
+static; zlib and SQLite3 are the only external libraries. A MinGW
+portability patch fixes the POSIX-only decompressor calls, the MSVC-only
+CPUID intrinsics, the LLP64 pointer cast in `UNLIKELY`, Windows path
+handling, and the hit buffer's `mmap`/`posix_fadvise` path; the MinGW
+`synchronization` import library supplies `WaitOnAddress` and
+`WakeByAddressSingle`. The package root is `diamond/`, so it extracts to
+`YR_MPE/bin/diamond/diamond(.exe)`. The smoke test runs `makedb` plus
+`blastp --compress 1` and checks the gzip output.
+
+### FastTree
+
+FastTree 2.2.0 is built from the single upstream `FastTree.c` without
+`-march=native`. FastTreeMP is added on Windows x64 and Linux, where OpenMP
+can be linked statically; macOS and Windows arm64 get the serial binary.
+The package root is `FastTree/`, matching `YR_MPE/bin/FastTree/FastTree(.exe)`.
+The six-taxon smoke test must produce a Newick tree containing every taxon.
+
+### IcyTree
+
+IcyTree is a pure client-side JavaScript application. CYAN vendors the
+complete static site (including Plotly, jQuery, jQuery UI, PapaParse and
+FileSaver) at commit `48ed43e` and packages it without compilation. It is
+built once in the Windows x64 job because the archive is platform-neutral;
+for YR-MPE it belongs under `YR_MPE/src/icytree/`, not `YR_MPE/bin/`. The
+smoke test verifies every local asset referenced by `index.html` exists.
 
 ### TrimAl
 
