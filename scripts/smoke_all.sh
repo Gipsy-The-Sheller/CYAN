@@ -22,7 +22,10 @@ while IFS= read -r smoke; do
   log "Smoke-testing $tool"
   (
     cd "$tool_dir"
-    bash ./smoke.sh
+    # Detach the smoke test from the here-string that lists the remaining
+    # tools. Some programs (notably MPI launchers) otherwise consume it and
+    # silently end the loop after their own test.
+    bash ./smoke.sh < /dev/null
   )
 done <<< "$scripts"
 

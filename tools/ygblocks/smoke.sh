@@ -43,7 +43,7 @@ params=(-p=t -q=n -r=n -e=-gb -b6=n -t=d -b3=3 -b4=2)
 
 [[ -s "$smoke/example.fas-gb.fa" ]] || die "missing selected FASTA output"
 [[ -s "$smoke/example.phy-gb.fa" ]] || die "missing PHYLIP selected output"
-cmp -s "$smoke/example.fas-gb.fa" "$smoke/example.phy-gb.fa" \
+[[ "$(sha256_file "$smoke/example.fas-gb.fa")" == "$(sha256_file "$smoke/example.phy-gb.fa")" ]] \
   || die "FASTA and PHYLIP input produced different selected alignments"
 
 report="$smoke/example.fas-gb.txt"
