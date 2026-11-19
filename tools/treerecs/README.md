@@ -50,6 +50,9 @@ Bison and Flex are required at configure time for libpll.
 - `patches/pll-modules-errno.patch` renames the `errno` parameter of
   `pllmod_set_error` to `errnum`. On MinGW, `errno` is a macro and the
   original declaration expands into invalid code.
+- `patches/libpll-pll-export.patch` leaves `PLL_EXPORT` empty for static
+  builds. Newer MinGW GCC and Clang reject `__declspec(dllexport)` on
+  thread-local variables (`pll_errno`, `pll_errmsg`, `pll_hardware`).
 
 ## Build notes
 

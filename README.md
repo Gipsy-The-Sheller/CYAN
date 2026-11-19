@@ -324,13 +324,15 @@ The tree is self-contained: Bio++, a Boost header subset, pll-modules
 (`0a458f5`) and libpll (`9be0d0a`) are vendored under `src/ext/`. Bison and
 Flex are required at configure time.
 
-Two patches are applied:
+Three patches are applied:
 
 - the unit tests are opt-in (`TREERECS_BUILD_TESTS`, default `OFF`), so the
   GoogleTest submodule is not needed;
 - pll-modules' `pllmod_set_error(int errno, ...)` parameter is renamed to
   `errnum`; on MinGW `errno` is a macro and the original declaration expands
-  into invalid code.
+  into invalid code;
+- libpll leaves `PLL_EXPORT` empty for static builds, because new MinGW GCC
+  and Clang reject `__declspec(dllexport)` on thread-local variables.
 
 Windows and Linux builds are static. OpenMP is enabled on Windows x64 and
 Linux; Windows arm64 and macOS build serial. The package root is `treerecs/`,

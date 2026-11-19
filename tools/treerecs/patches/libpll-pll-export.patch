@@ -1,0 +1,13 @@
+diff --git a/ext/pll/pll-modules/libs/libpll/src/pll.h b/ext/pll/pll-modules/libs/libpll/src/pll.h
+index a42a95b..ab5ff43 100644
+--- a/ext/pll/pll-modules/libs/libpll/src/pll.h
++++ b/ext/pll/pll-modules/libs/libpll/src/pll.h
+@@ -63,7 +63,7 @@
+ #include <sys/sysinfo.h>
+ #endif
+ 
+-#if (defined(__WIN32__) || defined(__WIN64__))
++#if (defined(__WIN32__) || defined(__WIN64__)) && defined(PLL_BUILD_SHARED)
+ #define PLL_EXPORT __declspec(dllexport)
+ #else
+ #define PLL_EXPORT

@@ -28,7 +28,7 @@ cp -a "$TOOL_DIR/src"/. "$work"/
 
 # Normalise the patches and the files they change, so CRLF checkouts on
 # Windows and LF checkouts on CI both apply cleanly.
-for name in treerecs-cmake pll-modules-errno; do
+for name in treerecs-cmake pll-modules-errno libpll-pll-export; do
   patch_file="$build/$name.patch"
   tr -d '\r' < "$TOOL_DIR/patches/$name.patch" > "$patch_file"
   while IFS= read -r header; do

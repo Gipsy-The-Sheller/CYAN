@@ -25,7 +25,7 @@ cp "$TOOL_DIR/examples/genetree.nwk" "$TOOL_DIR/examples/speciestree.nwk" "$smok
 
 (
   cd "$smoke"
-  "$bin" -g genetree.nwk -s speciestree.nwk -o out -O newick -q \
+  "$bin" -g genetree.nwk -s speciestree.nwk -o out -O newick:svg -q \
     > run.log 2>&1
 ) || {
   tail -n 40 "$smoke/run.log" >&2 || true
@@ -33,7 +33,9 @@ cp "$TOOL_DIR/examples/genetree.nwk" "$TOOL_DIR/examples/speciestree.nwk" "$smok
 }
 
 out="$smoke/out/genetree.nwk_recs.nwk"
+svg="$smoke/out/genetree.nwk_recs.svg"
 [[ -s "$out" ]] || die "Treerecs did not write $out"
+[[ -s "$svg" ]] || die "Treerecs did not write $svg"
 grep -q 'total cost' "$out" || die "Treerecs output is missing the reconciliation cost"
 grep -q ';' "$out" || die "Treerecs output is not Newick"
 grep -q 'danio_rerio' "$out" || die "Treerecs output is missing the input taxa"
