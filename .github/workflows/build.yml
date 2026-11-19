@@ -161,6 +161,7 @@ jobs:
             mingw-w64-clang-aarch64-toolchain
             mingw-w64-clang-aarch64-cmake
             mingw-w64-clang-aarch64-ninja
+            patch
             zip
 
       - name: Build
