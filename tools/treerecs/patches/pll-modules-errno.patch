@@ -1,0 +1,29 @@
+diff --git a/ext/pll/pll-modules/src/pllmod_common.c b/ext/pll/pll-modules/src/pllmod_common.c
+index ff8979a..f21d3f2 100644
+--- a/ext/pll/pll-modules/src/pllmod_common.c
++++ b/ext/pll/pll-modules/src/pllmod_common.c
+@@ -39,9 +39,9 @@
+  * @param[in] errmsg_fmt formatted error message
+  */
+ __attribute__((format(printf, 2, 3)))
+-void pllmod_set_error(int errno, const char* errmsg_fmt, ...)
++void pllmod_set_error(int errnum, const char* errmsg_fmt, ...)
+ {
+-  pll_errno = errno;
++  pll_errno = errnum;
+ 
+   va_list args;
+   va_start(args, errmsg_fmt);
+diff --git a/ext/pll/pll-modules/src/pllmod_common.h b/ext/pll/pll-modules/src/pllmod_common.h
+index 9d51ad5..ab7bac0 100644
+--- a/ext/pll/pll-modules/src/pllmod_common.h
++++ b/ext/pll/pll-modules/src/pllmod_common.h
+@@ -40,7 +40,7 @@
+ #define PLLMOD_ERROR_INVALID_INDEX                1003
+ #define PLLMOD_ERROR_NOT_IMPLEMENTED              1004
+ 
+-void pllmod_set_error(int errno, const char* errmsg_fmt, ...);
++void pllmod_set_error(int errnum, const char* errmsg_fmt, ...);
+ void pllmod_reset_error();
+ 
+ #endif

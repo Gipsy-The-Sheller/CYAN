@@ -1,0 +1,16 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8bf5ddb..efb6632 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -101,5 +101,9 @@ enable_testing()
+ add_subdirectory(ext)
+ add_subdirectory(src)
+ 
+-# Add 'tests' directory but don't build by default
+-add_subdirectory(tests EXCLUDE_FROM_ALL)
++# Add 'tests' directory but don't build by default. The GoogleTest
++# submodule is only needed when tests are enabled.
++option(TREERECS_BUILD_TESTS "Build Treerecs unit tests" OFF)
++if (TREERECS_BUILD_TESTS)
++  add_subdirectory(tests EXCLUDE_FROM_ALL)
++endif()

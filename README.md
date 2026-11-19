@@ -151,6 +151,7 @@ and cross-platform tools.
 | Clustal Omega | 1.2.4 | all five targets | [GSLBiotech/clustal-omega](https://github.com/GSLBiotech/clustal-omega) commit `d21fab8` | GPL-2.0 (argtable2 LGPL-2.0) |
 | MUSCLE | 5.3 | all five targets | [rcedgar/muscle](https://github.com/rcedgar/muscle) commit `29aa067` | GPL-3.0 |
 | ASTER2 | 2.6.1 | all five targets | [chaoszhang/ASTER2](https://github.com/chaoszhang/ASTER2) commit `002c13c` | AGPL-3.0 |
+| TreeRecs | 1.3 | all five targets | [Gipsy-The-Sheller/Treerecs-dev](https://github.com/Gipsy-The-Sheller/Treerecs-dev) commit `0c68102` | AGPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -310,6 +311,31 @@ images. It also adds the dependent `template` keywords and direct
 `thread_pool::SimpleScheduler` thread-pool types that Clang/AppleClang
 require. Windows and Linux binaries are static. The package root is `aster2/`
 (`aster2/astral(.exe)`, `aster2/caster(.exe)`).
+
+### TreeRecs
+
+Treerecs reconciles gene trees with a species tree. CYAN vendors
+`Gipsy-The-Sheller/Treerecs-dev` branch `master` (`0c68102`, 2025-10-31),
+which contains the maintained CMake setup, the pll-modules upgrade and the
+C++17 `std::random_shuffle` fix. The official project source is on INRIA
+GitLab.
+
+The tree is self-contained: Bio++, a Boost header subset, pll-modules
+(`0a458f5`) and libpll (`9be0d0a`) are vendored under `src/ext/`. Bison and
+Flex are required at configure time.
+
+Two patches are applied:
+
+- the unit tests are opt-in (`TREERECS_BUILD_TESTS`, default `OFF`), so the
+  GoogleTest submodule is not needed;
+- pll-modules' `pllmod_set_error(int errno, ...)` parameter is renamed to
+  `errnum`; on MinGW `errno` is a macro and the original declaration expands
+  into invalid code.
+
+Windows and Linux builds are static. OpenMP is enabled on Windows x64 and
+Linux; Windows arm64 and macOS build serial. The package root is `treerecs/`,
+matching `YR_MPE/bin/treerecs/treerecs(.exe)`. Inputs to `-g`/`-s` must be
+simple basenames: Treerecs mirrors the gene-tree path below `-o`.
 
 ### TrimAl
 

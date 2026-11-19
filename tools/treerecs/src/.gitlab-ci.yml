@@ -1,0 +1,23 @@
+image: debian:stable
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_DEPTH: 1
+
+stages:
+    - build
+
+build:
+  stage: build
+
+  tags:
+    - linux
+
+  script:
+    - apt update
+    - apt install -y build-essential cmake bison flex
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=Testing ..
+    - make
+    - make check
