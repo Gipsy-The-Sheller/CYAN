@@ -9,7 +9,6 @@
 
 set -euo pipefail
 
-echo "clustalo: build script started"
 TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../scripts/common.sh
 source "$TOOL_DIR/../../scripts/common.sh"
@@ -27,7 +26,6 @@ stage="$CYAN_BUILD/stage/$tool"
 
 rm -rf "$build"
 mkdir -p "$work" "$arg_work" "$stage"
-log "clustalo: copying sources"
 cp -a "$src"/. "$work"/
 cp -a "$arg_src"/. "$arg_work"/
 
@@ -40,7 +38,6 @@ while IFS= read -r header; do
   tr -d '\r' < "$arg_work/$file" > "$arg_work/$file.cyan-tmp"
   mv "$arg_work/$file.cyan-tmp" "$arg_work/$file"
 done < <(grep '^+++ b/' "$arg_patch")
-log "clustalo: applying argtable2 patch"
 patch -p1 -d "$arg_work" --batch < "$arg_patch"
 
 log "Building argtable2 2.13 for $CYAN_PLATFORM $CYAN_ARCH"
