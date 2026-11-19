@@ -17,7 +17,7 @@ src="$TOOL_DIR/src/ygblocks.cpp"
 stage="$CYAN_BUILD/stage/$tool"
 
 rm -rf "$stage"
-mkdir -p "$stage/bin"
+mkdir -p "$stage"
 
 cxxflags=(-std=c++17 -O2 -Wall -Wextra)
 if [[ "$CYAN_PLATFORM" == windows ]]; then
@@ -27,14 +27,14 @@ elif [[ "$CYAN_PLATFORM" == linux ]]; then
 fi
 
 log "Building YGBlocks $version ($CYAN_PLATFORM $CYAN_ARCH)"
-"$CXX" "${cxxflags[@]}" -o "$stage/bin/Gblocks$CYAN_EXE" "$src"
+"$CXX" "${cxxflags[@]}" -o "$stage/Gblocks$CYAN_EXE" "$src"
 
 if [[ "$CYAN_PLATFORM" == windows ]]; then
-  "$STRIP" --strip-unneeded "$stage/bin/Gblocks$CYAN_EXE" 2>/dev/null || true
+  "$STRIP" --strip-unneeded "$stage/Gblocks$CYAN_EXE" 2>/dev/null || true
 elif [[ "$CYAN_PLATFORM" == macos ]]; then
-  "$STRIP" -x "$stage/bin/Gblocks" 2>/dev/null || true
+  "$STRIP" -x "$stage/Gblocks" 2>/dev/null || true
 else
-  "$STRIP" --strip-unneeded "$stage/bin/Gblocks" 2>/dev/null || true
+  "$STRIP" --strip-unneeded "$stage/Gblocks" 2>/dev/null || true
 fi
 
 cp "$TOOL_DIR/LICENSE" "$TOOL_DIR/README.md" "$TOOL_DIR/VERSION" "$stage/"

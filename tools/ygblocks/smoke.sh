@@ -10,7 +10,7 @@ source "$TOOL_DIR/../../scripts/common.sh"
 
 tool=ygblocks
 pkg="$CYAN_BUILD/stage/$tool"
-bin="$pkg/bin/Gblocks$CYAN_EXE"
+bin="$pkg/Gblocks$CYAN_EXE"
 [[ -x "$bin" ]] || die "missing packaged YGBlocks: $bin"
 
 help_out="$("$bin" -h 2>&1 | tr -d '\r')"

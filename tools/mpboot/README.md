@@ -8,14 +8,15 @@ post-`v1.2`, but still reports version 1.1.1) and builds an AVX binary.
 
 ```text
 mpboot/
-├─ bin/mpboot(.exe)
+├─ mpboot(.exe)
 ├─ LICENSE                      (GPL-2.0)
 ├─ README.md
 ├─ README-CYAN.txt
 └─ VERSION
 ```
 
-The archive extracts directly into `YR_MPE/bin/`, matching the path in
+Extracting the archive into `YR_MPE/bin/` yields
+`YR_MPE/bin/mpboot/mpboot(.exe)`, matching the path in
 `YR_MPE/config.json`.
 
 ## Build notes

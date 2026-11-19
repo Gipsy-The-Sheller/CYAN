@@ -57,12 +57,11 @@ for candidate in \
 done
 [[ -n "$bin_path" ]] || die "MPBoot binary not found after the build"
 
-mkdir -p "$stage/bin"
-cp "$bin_path" "$stage/bin/mpboot$exe"
+cp "$bin_path" "$stage/mpboot$exe"
 if [[ "$CYAN_PLATFORM" == windows ]]; then
-  "$STRIP" --strip-unneeded "$stage/bin/mpboot$exe" 2>/dev/null || true
+  "$STRIP" --strip-unneeded "$stage/mpboot$exe" 2>/dev/null || true
 else
-  "$STRIP" --strip-unneeded "$stage/bin/mpboot" 2>/dev/null || true
+  "$STRIP" --strip-unneeded "$stage/mpboot" 2>/dev/null || true
 fi
 
 cp "$TOOL_DIR/LICENSE" "$TOOL_DIR/README.md" "$TOOL_DIR/VERSION" "$stage/"

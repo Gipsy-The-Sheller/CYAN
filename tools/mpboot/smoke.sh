@@ -10,7 +10,7 @@ source "$TOOL_DIR/../../scripts/common.sh"
 
 tool=mpboot
 pkg="$CYAN_BUILD/stage/$tool"
-bin="$pkg/bin/mpboot$CYAN_EXE"
+bin="$pkg/mpboot$CYAN_EXE"
 [[ -x "$bin" ]] || die "missing packaged mpboot: $bin"
 
 version_out="$("$bin" -h 2>&1 | tr -d '\r' | grep -m1 'MPBoot version' || true)"

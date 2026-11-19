@@ -15,15 +15,15 @@ nucleotide, codon and protein alignments. Protein similarity uses the Gonnet
 
 ```text
 Gblocks/
-├─ bin/Gblocks(.exe)
+├─ Gblocks(.exe)
 ├─ LICENSE
 ├─ README.md
 ├─ README-CYAN.txt
 └─ VERSION
 ```
 
-The `Gblocks/` archive root and `Gblocks.exe` name match
-`YR_MPE/config.json`, so the package extracts directly into `YR_MPE/bin/`.
+Extracting the archive into `YR_MPE/bin/` yields
+`YR_MPE/bin/Gblocks/Gblocks(.exe)`, matching `YR_MPE/config.json`.
 
 ## Input formats
 
