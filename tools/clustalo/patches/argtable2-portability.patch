@@ -73,10 +73,21 @@ index 29c20e5..5a8197e 100644
              arg_print_option(fp,shortopts,longopts,datatype," ");
              fprintf(fp,"(%s is too large)\n",argval);
 diff --git a/src/getopt.c b/src/getopt.c
-index b208529..f09e5f0 100644
+index b208529..9a648ca 100644
 --- a/src/getopt.c
 +++ b/src/getopt.c
-@@ -217,7 +217,7 @@ static char *posixly_correct;
+@@ -91,6 +91,10 @@
+ #define getpid() GetCurrentProcessId()
+ #endif
+ 
++/* strcmp/strncmp/strlen are used below; modern compilers require the
++   declarations even in the non-GNU branch. */
++#include <string.h>
++
+ #ifndef _
+ /* This is for other GNU distributions with internationalized messages.
+    When compiling libc, the _ macro is predefined.  */
+@@ -217,7 +221,7 @@ static char *posixly_correct;
  /* Avoid depending on library functions or files
     whose names are inconsistent.  */
  
