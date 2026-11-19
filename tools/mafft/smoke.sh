@@ -135,7 +135,7 @@ check_fasta "$smoke/reorder.out" 5
 
 run_case threads --auto --thread 2 smoke-input.fa
 check_fasta "$smoke/threads.out" 5
-cmp -s "$smoke/auto.out" "$smoke/threads.out" \
+[[ "$(sha256_file "$smoke/auto.out")" == "$(sha256_file "$smoke/threads.out")" ]] \
   || die "two-thread MAFFT output differs from single-thread output"
 
 run_case advanced --auto --op 1.5 --ep 0.1 --maxiterate 2 smoke-input.fa
