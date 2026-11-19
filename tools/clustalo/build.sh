@@ -49,7 +49,7 @@ cmake -S "$arg_work" -B "$arg_build" -G Ninja \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build "$arg_build" --target argtable2 --parallel "$CYAN_JOBS"
 
-arg_lib="$(find "$arg_build" \( -name 'libargtable2.a' -o -name 'argtable2.lib' \) -print -quit)"
+arg_lib="$(find "$arg_build" \( -name 'libargtable2.a' -o -name 'argtable2.lib' \) | sed -n '1p')"
 [[ -n "$arg_lib" ]] || die "argtable2 static library not found after the build"
 
 openmp=ON
