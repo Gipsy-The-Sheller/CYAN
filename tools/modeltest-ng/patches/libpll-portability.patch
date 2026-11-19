@@ -72,6 +72,21 @@ index 8121fce..a5bc94e 100644
      free(repeats->charmap);
      free(repeats);
    }
+diff --git a/src/pll.h b/src/pll.h
+index fc14632..a0a9ce5 100644
+--- a/src/pll.h
++++ b/src/pll.h
+@@ -56,7 +56,9 @@
+ #include <sys/sysinfo.h>
+ #endif
+ 
+-#if (defined(__WIN32__) || defined(__WIN64__))
++/* CYAN builds libpll as a static library, so no dllexport is needed.
++   Newer MinGW rejects dllexport on thread-local variables. */
++#if (defined(__WIN32__) || defined(__WIN64__)) && defined(PLL_BUILD_SHARED)
+ #define PLL_EXPORT __declspec(dllexport)
+ #else
+ #define PLL_EXPORT
 diff --git a/src/stepwise.c b/src/stepwise.c
 index 4586e52..839cc6e 100644
 --- a/src/stepwise.c
