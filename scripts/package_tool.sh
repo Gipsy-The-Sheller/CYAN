@@ -46,6 +46,15 @@ rm -rf "$work"
 mkdir -p "$work"
 cp -a "$stage"/. "$work"/
 
+source_note=""
+if [[ -f "$tool_dir/SOURCE_NOTE" ]]; then
+  source_note="$(cat "$tool_dir/SOURCE_NOTE")"
+fi
+if [[ -z "$source_note" ]]; then
+  source_note="The corresponding upstream source is identified by the URL and commit above
+and is vendored under \`tools/$tool/\` in the CYAN repository."
+fi
+
 cat > "$work/SOURCE_MANIFEST.md" <<EOF
 # Source manifest
 
@@ -62,8 +71,7 @@ cat > "$work/SOURCE_MANIFEST.md" <<EOF
 | Build release | $CYAN_RELEASE |
 | Build date | $(date -u +%Y-%m-%dT%H:%M:%SZ) |
 
-The corresponding upstream source is identified by the URL and commit above
-and is vendored under \`tools/$tool/\` in the CYAN repository.
+$source_note
 EOF
 
 archive_base="${tool}-${version}-${CYAN_PLATFORM_LABEL}-${CYAN_ARCH}-${CYAN_RELEASE}"

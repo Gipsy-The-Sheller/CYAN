@@ -7,7 +7,9 @@ every supported platform.
 
 Build artifacts are published on the
 [releases page](https://github.com/Gipsy-The-Sheller/CYAN/releases). The
-repository itself contains source and build recipes, not compiled binaries.
+repository contains source and build recipes. The single exception is the
+official MAFFT Windows payload under `tools/mafft/src/`, which is repackaged
+with a reduced runtime rather than rebuilt.
 
 ## Targets
 
@@ -152,6 +154,7 @@ and cross-platform tools.
 | MUSCLE | 5.3 | all five targets | [rcedgar/muscle](https://github.com/rcedgar/muscle) commit `29aa067` | GPL-3.0 |
 | ASTER2 | 2.6.1 | all five targets | [chaoszhang/ASTER2](https://github.com/chaoszhang/ASTER2) commit `002c13c` | AGPL-3.0 |
 | TreeRecs | 1.3 | all five targets | [Gipsy-The-Sheller/Treerecs-dev](https://github.com/Gipsy-The-Sheller/Treerecs-dev) commit `0c68102` | AGPL-3.0 |
+| MAFFT | 7.505 | Windows x64 | [mafft.cbrc.jp](https://mafft.cbrc.jp/alignment/software/) | BSD-3-Clause (runtime GPL/LGPL) |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -338,6 +341,33 @@ Windows and Linux builds are static. OpenMP is enabled on Windows x64 and
 Linux; Windows arm64 and macOS build serial. The package root is `treerecs/`,
 matching `YR_MPE/bin/treerecs/treerecs(.exe)`. Inputs to `-g`/`-s` must be
 simple basenames: Treerecs mirrors the gene-tree path below `-o`.
+
+### MAFFT (Windows, bash-min)
+
+MAFFT's Windows distribution is unusual: `mafft.bat` starts a bundled MSYS2
+`bash`, which interprets the 3,000-line `usr/bin/mafft` driver and launches
+the native alignment engines under `usr/lib/mafft/`. The official bundle
+carries a complete 20 MB `usr/bin`; CYAN repacks only what the driver uses.
+
+`tools/mafft/src/` contains two checksum-pinned archives: the official 7.505
+Windows payload (`mafft.bat` plus `usr/lib/mafft`) and a 27-file bash-min
+runtime (`bash`, `awk`, `sed`, `grep`, coreutils helpers and their MSYS2
+DLLs). `build.sh` verifies both SHA-256 values, unpacks them, rejects any
+unexpected `usr/bin` file, and packages the result. No upstream Makefile and
+no source patch is involved; the alignment binaries and the `mafft` shell
+driver are unchanged.
+
+The runtime is the old MSYS2 subset shipped inside MAFFT's own bundle
+(bash 4.4, coreutils 8.25, gawk 4.1.4, sed 4.2.2, grep 2.26), not a modern
+MSYS2 installation. This keeps the package self-contained and reproducible.
+Licenses for the runtime are listed in `LICENSE-MSYS2.txt`.
+
+The package root is `mafft/`, so it extracts to
+`YR_MPE/bin/mafft/mafft.bat`, matching `config.json`. `smoke.sh` exercises
+12 cases through `mafft.bat`: all six alignment modes, both direction modes,
+Clustal output, reordering, gap penalties, and `--thread 2` (which must match
+the single-threaded alignment byte for byte). `mafft.bat` does not propagate
+MAFFT's exit code, so every case validates its output instead.
 
 ### TrimAl
 

@@ -1,0 +1,10 @@
+This package repackages the official MAFFT 7.505 Windows x64 binary
+distribution. It does not compile MAFFT or run any upstream Makefile in CYAN.
+
+The payload archive contains `mafft.bat` and the native `usr/lib/mafft`
+executables exactly as shipped by the MAFFT project. The runtime archive
+contains a curated subset of the MSYS2 environment from the same official
+bundle: bash and the utilities the MAFFT launcher actually invokes. The
+upstream source for MAFFT core is available at the upstream URL; the bundled
+runtime components keep their upstream licenses, listed in
+`LICENSE-MSYS2.txt`.

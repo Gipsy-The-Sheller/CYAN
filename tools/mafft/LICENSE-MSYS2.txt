@@ -1,0 +1,47 @@
+Minimal MSYS2 runtime bundled with the MAFFT 7.505 Windows x64 package
+=====================================================================
+
+The runtime under `usr/bin/` is a subset of the MSYS2 environment that the
+MAFFT project ships inside its official Windows binary bundle. CYAN does not
+modify these files. They are included only because `mafft.bat` invokes
+`usr/bin/bash` to run the `usr/bin/mafft` shell script.
+
+Bundled components and versions
+-------------------------------
+
+| Component | Version | License |
+| --- | --- | --- |
+| bash | 4.4.0 | GPL-3.0-or-later |
+| GNU coreutils | 8.25 | GPL-3.0-or-later |
+| GNU gawk | 4.1.4 | GPL-3.0-or-later |
+| GNU grep | 2.26 | GPL-3.0-or-later |
+| GNU sed | 4.2.2 | GPL-3.0-or-later |
+| msys2-runtime (`msys-2.0.dll`) | bundled MSYS2 runtime | GPL-3.0-or-later |
+| GNU MP (`msys-gmp-10.dll`) | 6.1.x | LGPL-3.0-or-later |
+| GNU MPFR (`msys-mpfr-4.dll`) | 3.1.4 | LGPL-3.0-or-later |
+| GNU libiconv (`msys-iconv-2.dll`) | bundled | LGPL-2.1-or-later |
+| GNU libintl (`msys-intl-8.dll`) | bundled | LGPL-2.1-or-later |
+| GNU readline (`msys-readline6.dll`) | 6.x | GPL-3.0-or-later |
+| PCRE (`msys-pcre-1.dll`) | 8.x | BSD-3-Clause |
+
+The full GPL-3.0 text is in `COPYING-GPL-3`. The LGPL and BSD notices are
+available from the upstream component distributions. Corresponding source
+code is published by the MSYS2 project and by each GNU package:
+
+- <https://www.msys2.org/>
+- <https://github.com/msys2/msys2-runtime>
+- <https://ftp.gnu.org/gnu/bash/>
+- <https://ftp.gnu.org/gnu/coreutils/>
+- <https://ftp.gnu.org/gnu/gawk/>
+- <https://ftp.gnu.org/gnu/grep/>
+- <https://ftp.gnu.org/gnu/sed/>
+- <https://ftp.gnu.org/gnu/gmp/>
+- <https://ftp.gnu.org/gnu/mpfr/>
+- <https://ftp.gnu.org/gnu/libiconv/>
+- <https://ftp.gnu.org/gnu/gettext/> (libintl)
+- <https://ftp.gnu.org/gnu/readline/>
+- <https://www.pcre.org/>
+
+MAFFT itself is distributed under the BSD 3-Clause license; see
+`LICENSE-MAFFT`. The MAFFT executable payload is unchanged from the official
+7.505 Windows x64 distribution.
