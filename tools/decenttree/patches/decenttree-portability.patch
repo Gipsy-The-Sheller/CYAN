@@ -266,3 +266,34 @@ index 310435f..78c5c70 100644
  
  /**
          vector of double number
+diff --git a/zlib-1.2.7/CMakeLists.txt b/zlib-1.2.7/CMakeLists.txt
+index 32db47c..815da72 100755
+--- a/zlib-1.2.7/CMakeLists.txt
++++ b/zlib-1.2.7/CMakeLists.txt
+@@ -59,6 +59,13 @@ if(NOT HAVE_FSEEKO)
+     add_definitions(-DNO_FSEEKO)
+ endif()
+ 
++# zutil.h assumes that old Macs have no fdopen(); modern macOS SDKs do.
++# Without this check the fdopen() macro in zutil.h breaks <stdio.h>.
++check_function_exists(fdopen HAVE_FDOPEN)
++if(HAVE_FDOPEN)
++    add_definitions(-DHAVE_FDOPEN)
++endif()
++
+ #
+ # Check for unistd.h
+ #
+diff --git a/zlib-1.2.7/zutil.h b/zlib-1.2.7/zutil.h
+index 4e3dcc6..88c97d5 100755
+--- a/zlib-1.2.7/zutil.h
++++ b/zlib-1.2.7/zutil.h
+@@ -124,7 +124,7 @@ extern const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
+ #    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+ #      include <unix.h> /* for fdopen */
+ #    else
+-#      ifndef fdopen
++#      if !defined(fdopen) && !defined(HAVE_FDOPEN)
+ #        define fdopen(fd,mode) NULL /* No fdopen() */
+ #      endif
+ #    endif
