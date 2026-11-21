@@ -68,6 +68,12 @@ jobs:
             patch
             zip
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Install Microsoft MPI SDK and runtime
         shell: pwsh
         run: |
