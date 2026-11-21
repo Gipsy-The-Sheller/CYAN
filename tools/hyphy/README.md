@@ -27,10 +27,14 @@ hyphy/
   has no optional runtime dependencies.
 - Linux builds are static; macOS uses the system C/C++ runtime.
 - HyPhy historically stores object handles in `long`, which is only valid
-  on LP64. Native Windows x64 (LLP64) is therefore not packaged; Windows
-  users should run the Linux build under WSL2.
-- `hyphy-run` sets `HYPHY_PATH` to the adjacent `res/` directory; calling
-  the raw binary requires setting `HYPHY_PATH` yourself.
+  on LP64. Native MinGW/LLP64 is therefore not supported. The Windows x64
+  package is built with the MSYS POSIX toolchain and bundles `msys-2.0.dll`,
+  `msys-gcc_s-seh-1.dll` and `msys-stdc++-6.dll`; WSL2 is also an option.
+- `hyphy-run` (Unix) or `hyphy-run.bat` (Windows) sets `HYPHY_PATH` to the
+  adjacent `res/` directory; calling the raw binary requires setting
+  `HYPHY_PATH` yourself.
+- Windows `res/` is repacked with the two trailing-dot filenames renamed,
+  because ZIP cannot represent them; the model references are updated.
 
 ## Smoke test
 

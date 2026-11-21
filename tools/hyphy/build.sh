@@ -25,11 +25,28 @@ cmake_build="$build/cmake-build"
 stage="$CYAN_BUILD/stage/$tool"
 
 case "$CYAN_PLATFORM" in
+  windows)
+    [[ "$CYAN_ARCH" == x64 ]] \
+      || die "HyPhy Windows builds require the MSYS x64 toolchain" ;;
   linux|macos) ;;
-  *) die "HyPhy is packaged for Linux/macOS only (Windows needs a 64-bit handle port)" ;;
+  *) die "Unsupported HyPhy target: $CYAN_PLATFORM-$CYAN_ARCH" ;;
 esac
 
-rm -rf "$build"
+# Windows x64 uses the MSYS POSIX toolchain, where long is 64-bit and
+# therefore matches HyPhy's pointer-sized handles. The resulting binary
+# needs the msys runtime DLLs, which are bundled below. MinGW/LLP64 is not
+# supported without a large intptr_t port.
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  hyphy_cc=/usr/bin/gcc
+  hyphy_cxx=/usr/bin/g++
+  cmake_cmd=/usr/bin/cmake
+else
+  hyphy_cc="$CC"
+  hyphy_cxx="$CXX"
+  cmake_cmd=cmake
+fi
+
+rm -rf "$build" "$stage"
 mkdir -p "$work" "$stage"
 cp "$TOOL_DIR/CMakeLists.txt" "$work/"
 cp -a "$TOOL_DIR/src" "$work/src"
@@ -43,8 +60,8 @@ cmake_args=(
   -B "$cmake_build"
   -G Ninja
   -DCMAKE_BUILD_TYPE=Release
-  -DCMAKE_C_COMPILER="$CC"
-  -DCMAKE_CXX_COMPILER="$CXX"
+  -DCMAKE_C_COMPILER="$hyphy_cc"
+  -DCMAKE_CXX_COMPILER="$hyphy_cxx"
   -DNOBLAS=ON
   -DNOZLIB=ON
   -DCMAKE_DISABLE_FIND_PACKAGE_BLAS=TRUE
@@ -53,13 +70,17 @@ cmake_args=(
   -DCMAKE_DISABLE_FIND_PACKAGE_MPI=TRUE
   -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=TRUE
 )
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  # MSYS's POSIX headers hide alloca/mkstemp under strict C++ flags.
+  cmake_args+=(-DCMAKE_CXX_FLAGS="-D_GNU_SOURCE -include alloca.h")
+fi
 if [[ "$CYAN_PLATFORM" == linux ]]; then
   cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS=-static)
 fi
 
 log "Configuring HyPhy $version ($CYAN_PLATFORM $CYAN_ARCH)"
-cmake "${cmake_args[@]}"
-cmake --build "$cmake_build" --target hyphy --parallel "$CYAN_JOBS"
+"$cmake_cmd" "${cmake_args[@]}"
+"$cmake_cmd" --build "$cmake_build" --target hyphy --parallel "$CYAN_JOBS"
 
 bin_path="$cmake_build/hyphy$CYAN_EXE"
 [[ -f "$bin_path" ]] || die "HyPhy binary not found: $bin_path"
@@ -68,13 +89,32 @@ cp "$bin_path" "$stage/hyphy$CYAN_EXE"
 cp -a "$work/res" "$stage/res"
 cp "$TOOL_DIR/LICENSE" "$TOOL_DIR/README.md" "$TOOL_DIR/VERSION" "$stage/"
 
-cat > "$stage/hyphy-run" <<'EOF'
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  for dll in msys-2.0.dll msys-gcc_s-seh-1.dll msys-stdc++-6.dll; do
+    cp "/usr/bin/$dll" "$stage/$dll"
+  done
+  # Zip cannot represent filenames ending in a dot. Rename the two files
+  # and update the model references that use them.
+  (
+    cd "$stage/res"
+    find . -type f -name '*params.' -print0 | while IFS= read -r -d '' f; do
+      mv "$f" "${f%.}"
+    done
+    while IFS= read -r -d '' f; do
+      sed -i 's/Observed Nuc 3 params\./Observed Nuc 3 params/g; s/Observed Nuc 9 params\./Observed Nuc 9 params/g' "$f"
+    done < <(grep -rlZ 'Observed Nuc [39] params\.' .)
+  )
+  printf '@echo off\r\nset HYPHY_PATH=%%~dp0res\r\n"%%~dp0hyphy.exe" %%*\r\n' \
+    > "$stage/hyphy-run.bat"
+else
+  cat > "$stage/hyphy-run" <<'EOF'
 #!/bin/sh
 # Run the packaged HyPhy with its standard batch library.
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 HYPHY_PATH="$dir/res" exec "$dir/hyphy" "$@"
 EOF
-chmod +x "$stage/hyphy-run"
+  chmod +x "$stage/hyphy-run"
+fi
 
 if [[ "$CYAN_PLATFORM" == macos ]]; then
   "$STRIP" -x "$stage/hyphy" 2>/dev/null || true
@@ -98,8 +138,9 @@ Use:
   ./hyphy-run absrel --alignment alignment.fa --tree tree.nwk
 
 HyPhy is built without BLAS, zlib, curl or MPI. The package root is hyphy/.
-Native Windows x64 is not supported because HyPhy stores object handles in
-C long, which is 32-bit on LLP64; use the Linux build under WSL2 there.
+Native MinGW/LLP64 is not supported because HyPhy stores object handles in
+C long; the Windows x64 package uses the MSYS POSIX toolchain and bundles
+the msys runtime DLLs. WSL2 is also an option.
 Licensed under the MIT license; see LICENSE.
 EOF
 

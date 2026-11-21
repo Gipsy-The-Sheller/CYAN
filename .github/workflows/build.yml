@@ -59,6 +59,9 @@ jobs:
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-zlib
             mingw-w64-x86_64-sqlite3
+            cmake
+            ninja
+            gcc
             bison
             flex
             make

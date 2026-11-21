@@ -15,7 +15,11 @@ bin="$pkg/hyphy$CYAN_EXE"
 smoke="$CYAN_BUILD/$tool/smoke"
 
 [[ -x "$bin" ]] || die "missing packaged HyPhy binary"
-[[ -x "$pkg/hyphy-run" ]] || die "missing hyphy-run wrapper"
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  [[ -f "$pkg/hyphy-run.bat" ]] || die "missing hyphy-run.bat wrapper"
+else
+  [[ -x "$pkg/hyphy-run" ]] || die "missing hyphy-run wrapper"
+fi
 [[ -d "$pkg/res" ]] || die "missing HyPhy res/ library"
 
 version_out="$(HYPHY_PATH="$pkg/res" "$bin" --version 2>&1 | tr -d '\r' | head -n 3)"
@@ -30,8 +34,14 @@ help_out="$(HYPHY_PATH="$pkg/res" "$bin" --help 2>&1 | tr -d '\r')"
   || die "packaged res/ is missing TemplateBatchFiles/absrel.bf"
 
 mkdir -p "$smoke"
-"$pkg/hyphy-run" --version > "$smoke/wrapper.log" 2>&1 \
-  || { cat "$smoke/wrapper.log" >&2; die "hyphy-run wrapper failed"; }
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  ( cd "$pkg" && cmd //c ".\\hyphy-run.bat --version" ) \
+    > "$smoke/wrapper.log" 2>&1 \
+    || { cat "$smoke/wrapper.log" >&2; die "hyphy-run.bat wrapper failed"; }
+else
+  "$pkg/hyphy-run" --version > "$smoke/wrapper.log" 2>&1 \
+    || { cat "$smoke/wrapper.log" >&2; die "hyphy-run wrapper failed"; }
+fi
 grep -q "$version" "$smoke/wrapper.log" \
   || die "hyphy-run did not report the expected version"
 

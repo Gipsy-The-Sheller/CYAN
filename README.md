@@ -162,7 +162,7 @@ and cross-platform tools.
 | FastME | 2.1.6.3 | all five targets | [LIRMM GitLab](https://gite.lirmm.fr/atgc/FastME) tag `v2.1.6.3` | GPL-3.0 |
 | MCL | 22-282 | all five targets | [micans.org/mcl](https://micans.org/mcl/) + cimfomfa 21-361 | GPL-3.0 |
 | ASTER v1 | 1.25 | Windows x64, Linux x64/arm64, macOS arm64 | [chaoszhang/ASTER](https://github.com/chaoszhang/ASTER) tag `v1.25` | AGPL-3.0 |
-| HyPhy | 2.5.103 | Linux x64/arm64, macOS arm64 | [veg/hyphy](https://github.com/veg/hyphy) tag `2.5.103` | MIT |
+| HyPhy | 2.5.103 | Windows x64 (MSYS), Linux x64/arm64, macOS arm64 | [veg/hyphy](https://github.com/veg/hyphy) tag `2.5.103` | MIT |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -423,7 +423,10 @@ HyPhy 2.5.103 is built with CMake/Ninja. BLAS, zlib, curl and MPI are
 disabled so the package has no optional runtime dependencies; the standard
 `res/` batch library is shipped, and `hyphy-run` points `HYPHY_PATH` at it.
 HyPhy's historical `long`-based object handles are LP64-only, so native
-Windows x64 is not packaged; use the Linux build under WSL2 there.
+MinGW/LLP64 builds are not supported. The Windows x64 package therefore
+uses the MSYS POSIX toolchain (where `long` is 64-bit) and bundles the
+required `msys-2.0.dll`, `msys-gcc_s-seh-1.dll` and `msys-stdc++-6.dll`;
+`hyphy-run.bat` selects it. WSL2 remains an alternative.
 
 ### PAML
 
