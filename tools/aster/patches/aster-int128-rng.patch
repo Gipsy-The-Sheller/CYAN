@@ -1,0 +1,20 @@
+--- a/src/algorithms.hpp
++++ b/src/algorithms.hpp
+@@ -1209,7 +1209,7 @@
+ 	vector<Node> nodes;
+ 	unordered_map<hash_t, int, Hasher> hash;
+ 	vector<hash_t> taxonHash;
+-	uniform_int_distribution<hash_t> randomHash;
++	uniform_int_distribution<uint64_t> randomHash;
+ 	uniform_real_distribution<double> randP;
+ 	int roundId = 0;
+ 	ThreadPool &TP;
+@@ -1222,7 +1222,7 @@
+ 			ntaxa(ntaxa), tripInit(tripInit), names(names), TP(TP), ROUND_NN(ROUND_NN) {
+ 		taxonHash.push_back(0);
+ 		for (int i = 1; i < ntaxa; i++){
+-			hash_t r = randomHash(RND_GENERATOR);
++			hash_t r = ((hash_t) randomHash(RND_GENERATOR) << 64) | randomHash(RND_GENERATOR);
+ 			taxonHash.push_back(r);
+ 			hash[r] = nodes.size();
+ 			nodes.emplace_back(i, r);

@@ -161,6 +161,7 @@ and cross-platform tools.
 | PAML | 4.10.10 | all five targets | [abacus-gene/paml](https://github.com/abacus-gene/paml) tag `v4.10.10` | GPL-3.0 |
 | FastME | 2.1.6.3 | all five targets | [LIRMM GitLab](https://gite.lirmm.fr/atgc/FastME) tag `v2.1.6.3` | GPL-3.0 |
 | MCL | 22-282 | all five targets | [micans.org/mcl](https://micans.org/mcl/) + cimfomfa 21-361 | GPL-3.0 |
+| ASTER v1 | 1.25 | Windows x64, Linux x64/arm64, macOS arm64 | [chaoszhang/ASTER](https://github.com/chaoszhang/ASTER) tag `v1.25` | AGPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -404,6 +405,16 @@ FileSaver) at commit `48ed43e` and packages it without compilation. It is
 built once in the Windows x64 job because the archive is platform-neutral;
 for YR-MPE it belongs under `YR_MPE/src/icytree/`, not `YR_MPE/bin/`. The
 smoke test verifies every local asset referenced by `index.html` exists.
+
+### ASTER v1
+
+ASTER v1.25 is kept alongside ASTER2 because YR-MPE's existing `aster/`
+configuration and the ASTER/ASTRAL-Pro3 workflow predate the ASTER2
+migration. The package builds ASTRAL-IV (`astral4`/`astral`), ASTRAL-Pro3
+(`astral-pro3`/`astral-pro`), wASTRAL, CASTER and the distance utilities
+without `-march=native`. A small patch replaces the 128-bit
+`uniform_int_distribution` used for taxon hashes, which current libstdc++
+rejects. The package root is `aster/`, matching the old YR-MPE layout.
 
 ### PAML
 
