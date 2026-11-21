@@ -163,6 +163,7 @@ and cross-platform tools.
 | MCL | 22-282 | all five targets | [micans.org/mcl](https://micans.org/mcl/) + cimfomfa 21-361 | GPL-3.0 |
 | ASTER v1 | 1.25 | Windows x64, Linux x64/arm64, macOS arm64 | [chaoszhang/ASTER](https://github.com/chaoszhang/ASTER) tag `v1.25` | AGPL-3.0 |
 | HyPhy | 2.5.103 | Windows x64 (MSYS), Linux x64/arm64, macOS arm64 | [veg/hyphy](https://github.com/veg/hyphy) tag `2.5.103` | MIT |
+| BMGE | 2.0 | platform-neutral jar (one package) | [GIPhy/BMGE](https://gitlab.pasteur.fr/GIPhy/BMGE) commit `4539aa6` | GPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -427,6 +428,14 @@ MinGW/LLP64 builds are not supported. The Windows x64 package therefore
 uses the MSYS POSIX toolchain (where `long` is 64-bit) and bundles the
 required `msys-2.0.dll`, `msys-gcc_s-seh-1.dll` and `msys-stdc++-6.dll`;
 `hyphy-run.bat` selects it. WSL2 remains an alternative.
+
+### BMGE
+
+BMGE 2.0 is a single Java program plus the `bmge` package. CYAN compiles it
+with `javac --release 11` and packages the platform-neutral jar with
+Windows/Unix launchers and the upstream 55-sequence nucleotide example. A
+Java 11+ runtime is required; no JRE is bundled. The package root is
+`BMGE/`, matching the old YR-MPE `/bin/BMGE/` layout.
 
 ### PAML
 
