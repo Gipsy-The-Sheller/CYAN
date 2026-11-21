@@ -85,7 +85,14 @@ fi
 log "Configuring MCL $version ($CYAN_PLATFORM $CYAN_ARCH)"
 (
   cd "$work/mcl"
-  ./configure --prefix="$prefix" CC="$CC" \
+  chmod +x configure autofoo/compile autofoo/config.guess autofoo/config.sub \
+    autofoo/depcomp autofoo/install-sh autofoo/missing
+  # Avoid automake's maintainer rules trying to regenerate aclocal.m4 or
+  # the Makefile.in files because archive timestamps are out of order.
+  touch aclocal.m4
+  touch configure config.h.in
+  find . -name Makefile.in -exec touch {} +
+  sh ./configure --prefix="$prefix" CC="$CC" \
     CFLAGS="$mcl_cflags" CPPFLAGS="-I$prefix/include" LDFLAGS="$mcl_ldflags"
   make -C src/clew -j "$CYAN_JOBS"
   make -C src/mcl -j "$CYAN_JOBS"

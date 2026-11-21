@@ -31,7 +31,14 @@ fi
 log "Configuring FastME $version ($CYAN_PLATFORM $CYAN_ARCH)"
 (
   cd "$work"
-  ./configure --disable-OpenMP CC="$CC" CFLAGS="$cflags" LDFLAGS="$ldflags"
+  # Git does not preserve the executable bit for the autotools helpers in
+  # every checkout; configure and install-sh are invoked directly.
+  chmod +x configure compile config.guess config.sub depcomp install-sh missing
+  # Archive timestamps are not ordered, which makes make try to regenerate
+  # aclocal/configure instead of using the shipped generated files.
+  touch aclocal.m4
+  touch configure Makefile.in src/Makefile.in src/config.h.in
+  sh ./configure --disable-OpenMP CC="$CC" CFLAGS="$cflags" LDFLAGS="$ldflags"
   make -j "$CYAN_JOBS"
 )
 
