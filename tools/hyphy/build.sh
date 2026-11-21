@@ -72,7 +72,11 @@ cmake_args=(
 )
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   # MSYS's POSIX headers hide alloca/mkstemp under strict C++ flags.
-  cmake_args+=(-DCMAKE_CXX_FLAGS="-D_GNU_SOURCE -include alloca.h")
+  # Force the MSYS ninja; the MINGW64 ninja cannot consume POSIX paths.
+  cmake_args+=(
+    -DCMAKE_CXX_FLAGS="-D_GNU_SOURCE -include alloca.h"
+    -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+  )
 fi
 if [[ "$CYAN_PLATFORM" == linux ]]; then
   cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS=-static)
@@ -119,7 +123,9 @@ EOF
   chmod +x "$stage/hyphy-run"
 fi
 
-if [[ "$CYAN_PLATFORM" == macos ]]; then
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  /usr/bin/strip --strip-unneeded "$stage/hyphy.exe" 2>/dev/null || true
+elif [[ "$CYAN_PLATFORM" == macos ]]; then
   "$STRIP" -x "$stage/hyphy" 2>/dev/null || true
 else
   "$STRIP" --strip-unneeded "$stage/hyphy" 2>/dev/null || true
