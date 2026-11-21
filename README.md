@@ -158,6 +158,9 @@ and cross-platform tools.
 | DIAMOND | 2.2.9 | Windows x64, Linux x64/arm64, macOS arm64 | [bbuchfink/diamond](https://github.com/bbuchfink/diamond) tag `v2.2.9` | GPL-3.0 |
 | FastTree | 2.2.0 | all five targets | [morgannprice/fasttree](https://github.com/morgannprice/fasttree) commit `a780aa4` | GPL-3.0 |
 | IcyTree | `48ed43e` | static HTML (one package) | [tgvaughan/icytree](https://github.com/tgvaughan/icytree) commit `48ed43e` | GPL-3.0 |
+| PAML | 4.10.10 | all five targets | [abacus-gene/paml](https://github.com/abacus-gene/paml) tag `v4.10.10` | GPL-3.0 |
+| FastME | 2.1.6.3 | all five targets | [LIRMM GitLab](https://gite.lirmm.fr/atgc/FastME) tag `v2.1.6.3` | GPL-3.0 |
+| MCL | 22-282 | all five targets | [micans.org/mcl](https://micans.org/mcl/) + cimfomfa 21-361 | GPL-3.0 |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -401,6 +404,29 @@ FileSaver) at commit `48ed43e` and packages it without compilation. It is
 built once in the Windows x64 job because the archive is platform-neutral;
 for YR-MPE it belongs under `YR_MPE/src/icytree/`, not `YR_MPE/bin/`. The
 smoke test verifies every local asset referenced by `index.html` exists.
+
+### PAML
+
+PAML 4.10.10 is built from the upstream plain Makefile with no patches. The
+package includes all ten programs, `dat/` model tables, and the upstream
+`yn00`/`codeml` examples. Windows and Linux builds are static. The smoke
+test runs the abglobin `yn00` analysis and the lysozyme `codeml` branch
+model. The package root is `paml/`.
+
+### FastME
+
+FastME 2.1.6.3 is the distance-tree backend for STAG and OrthoFinder's
+`-M dendroblast`. It is built with upstream autotools, explicitly with
+`--disable-OpenMP` so no libomp/libgomp runtime is needed. The package root
+is `fastme/`, matching `YR_MPE/bin/fastme/fastme(.exe)`.
+
+### MCL
+
+MCL 22-282 uses cimfomfa/libtingea, whose release tarball has no generated
+configure script. CYAN compiles the 17-file `tingea` library directly, then
+runs MCL's configure and builds only the `mcl` executable. A MinGW patch
+handles the missing `SIGALRM`/`SIGUSR1`, `srandom`/`random` and `getppid`.
+The package root is `mcl/`, matching `YR_MPE/bin/mcl/mcl(.exe)`.
 
 ### TrimAl
 

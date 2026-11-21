@@ -1,0 +1,6 @@
+**/*.o
+**/trumpet/cff_*
+**/Makefile
+**/.deps
+config*
+VERSION

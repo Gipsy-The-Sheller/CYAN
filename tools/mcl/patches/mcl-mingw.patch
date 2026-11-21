@@ -1,0 +1,48 @@
+--- a/mcl/src/mcl/proc.c
++++ b/mcl/src/mcl/proc.c
+@@ -63,8 +63,8 @@
+ void mclSigCatch
+ (  int sig
+ )
+-   {  if (sig == SIGALRM)
+-      abort_loop = 1
++   {  (void) sig
++   ;  abort_loop = 1
+ ;  }
+ 
+ 
+--- a/mcl/src/shmcl/mcl.c
++++ b/mcl/src/shmcl/mcl.c
+@@ -109,10 +109,18 @@
+    ;  const char* me          =  "mcl"
+    ;  mcxstatus status        =  STATUS_OK
+ 
++#ifdef _WIN32
++   ;  srand((unsigned int) mcxSeed(315))
++#else
+    ;  srandom(mcxSeed(315))
++#endif
++#ifdef SIGALRM
+    ;  signal(SIGALRM, mclSigCatch)
++#endif
++#ifdef SIGUSR1
+    ;  if (signal(SIGUSR1, mcxLogSig) == SIG_ERR)
+       mcxErr(me, "cannot catch SIGUSR1!")
++#endif
+ 
+    ;  mcxLogLevel =
+       MCX_LOG_AGGR | MCX_LOG_MODULE | MCX_LOG_IO | MCX_LOG_GAUGE | MCX_LOG_WARN
+--- a/cimfomfa/tingea/rand.c
++++ b/cimfomfa/tingea/rand.c
+@@ -21,7 +21,11 @@
+ (  unsigned long i
+ )
+    {  pid_t   p  = getpid()
++#ifdef _WIN32
++   ;  pid_t   pp = getpid()
++#else
+    ;  pid_t   pp = getppid()
++#endif
+ 
+    ;  time_t  t  = time(NULL)
+ 
