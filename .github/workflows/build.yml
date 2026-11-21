@@ -169,6 +169,7 @@ jobs:
             mingw-w64-clang-aarch64-sqlite3
             bison
             flex
+            make
             patch
             zip
 
