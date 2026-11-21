@@ -27,15 +27,17 @@ mv "$work/algorithms.hpp.tmp" "$work/algorithms.hpp"
 patch -p1 -d "$build" --batch < "$patch_file"
 
 cxxflags=(-std=c++17 -O2 -pthread)
-linkflags=()
+# A string, not an array: macOS ships Bash 3.2, where expanding an empty
+# array under `set -u` is an unbound-variable error.
+linkflags=""
 if [[ "$CYAN_PLATFORM" != macos ]]; then
-  linkflags=(-static -static-libgcc -static-libstdc++)
+  linkflags="-static -static-libgcc -static-libstdc++"
 fi
 
 build_target() {
   local out="$1" src="$2"
   log "Building $out"
-  "$CXX" "${cxxflags[@]}" "${linkflags[@]}" "$work/$src" -o "$stage/$out$CYAN_EXE"
+  "$CXX" "${cxxflags[@]}" $linkflags "$work/$src" -o "$stage/$out$CYAN_EXE"
 }
 
 build_target astral4 astral.cpp
