@@ -45,4 +45,14 @@ fi
 grep -q "$version" "$smoke/wrapper.log" \
   || die "hyphy-run did not report the expected version"
 
+# Exercise the packaged batch library, not just the executable.
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  ( cd "$pkg" && cmd //c ".\\hyphy-run.bat absrel --help" ) \
+    > "$smoke/absrel.log" 2>&1
+else
+  "$pkg/hyphy-run" absrel --help > "$smoke/absrel.log" 2>&1
+fi
+grep -q 'Available analysis command line options' "$smoke/absrel.log" \
+  || die "HyPhy could not load the aBSREL batch file"
+
 log "HyPhy smoke test passed ($version, res/ library present)"
