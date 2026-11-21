@@ -92,7 +92,7 @@ log "Configuring MCL $version ($CYAN_PLATFORM $CYAN_ARCH)"
   touch aclocal.m4
   touch configure config.h.in
   find . -name Makefile.in -exec touch {} +
-  sh ./configure --prefix="$prefix" CC="$CC" \
+  sh ./configure --prefix="$prefix" --disable-dependency-tracking CC="$CC" \
     CFLAGS="$mcl_cflags" CPPFLAGS="-I$prefix/include" LDFLAGS="$mcl_ldflags"
   make -C src/clew -j "$CYAN_JOBS"
   make -C src/mcl -j "$CYAN_JOBS"

@@ -38,7 +38,8 @@ log "Configuring FastME $version ($CYAN_PLATFORM $CYAN_ARCH)"
   # aclocal/configure instead of using the shipped generated files.
   touch aclocal.m4
   touch configure Makefile.in src/Makefile.in src/config.h.in
-  sh ./configure --disable-OpenMP CC="$CC" CFLAGS="$cflags" LDFLAGS="$ldflags"
+  sh ./configure --disable-OpenMP --disable-dependency-tracking \
+    CC="$CC" CFLAGS="$cflags" LDFLAGS="$ldflags"
   make -j "$CYAN_JOBS"
 )
 
