@@ -104,7 +104,10 @@ if [[ "$CYAN_PLATFORM" == windows ]]; then
       sed -i 's/Observed Nuc 3 params\./Observed Nuc 3 params/g; s/Observed Nuc 9 params\./Observed Nuc 9 params/g' "$f"
     done < <(grep -rlZ 'Observed Nuc [39] params\.' .)
   )
-  printf '@echo off\r\nset HYPHY_PATH=%%~dp0res\r\n"%%~dp0hyphy.exe" %%*\r\n' \
+  # HyPhy's MSYS build expects a POSIX/relative library path. Run from the
+  # package directory and use the relative res/ path so HYPHY_PATH does not
+  # become a Windows drive path.
+  printf '@echo off\r\npushd "%%~dp0"\r\nset HYPHY_PATH=res\r\n"%%~dp0hyphy.exe" %%*\r\npopd\r\n' \
     > "$stage/hyphy-run.bat"
 else
   cat > "$stage/hyphy-run" <<'EOF'
