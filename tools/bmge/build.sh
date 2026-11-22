@@ -26,9 +26,13 @@ if [[ -z "$javac_bin" && -n "${JAVA_HOME:-}" ]]; then
   fi
   if [[ -x "$java_home/bin/javac" ]]; then
     javac_bin="$java_home/bin/javac"
+  elif [[ -x "$java_home/bin/javac.exe" ]]; then
+    javac_bin="$java_home/bin/javac.exe"
   fi
   if [[ -z "$jar_bin" && -x "$java_home/bin/jar" ]]; then
     jar_bin="$java_home/bin/jar"
+  elif [[ -z "$jar_bin" && -x "$java_home/bin/jar.exe" ]]; then
+    jar_bin="$java_home/bin/jar.exe"
   fi
 fi
 [[ -n "$javac_bin" ]] || die "javac (JDK 11+) is required"

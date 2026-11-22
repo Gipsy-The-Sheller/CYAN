@@ -62,6 +62,15 @@ rm -rf "$build" "$stage"
 mkdir -p "$work" "$stage"
 cp -a "$TOOL_DIR/src"/. "$work"/
 
+# Git checkouts on Windows may use CRLF; patch hunks are LF.
+for f in orthofinder.py scripts_of/__main__.py scripts_of/parallel_task_manager.py scripts_of/program_caller.py \
+         scripts_of/orthologues.py scripts_of/trees_msa.py scripts_of/config.json; do
+  if grep -q $'\r' "$work/$f"; then
+    tr -d '\r' < "$work/$f" > "$work/$f.lf"
+    mv "$work/$f.lf" "$work/$f"
+  fi
+done
+
 log "Applying OrthoFinder portability patch"
 (
   cd "$work"

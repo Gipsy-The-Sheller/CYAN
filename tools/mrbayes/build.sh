@@ -34,6 +34,16 @@ mkdir -p "$build"
 log "Building BEAGLE 4.2.0 ($CYAN_PLATFORM $CYAN_ARCH)"
 cp -a "$TOOL_DIR/beagle-lib" "$beagle_src"
 
+# Git checkouts on Windows may use CRLF; patch hunks are LF.
+for f in CMakeLists.txt libhmsbeagle/CMakeLists.txt \
+         libhmsbeagle/plugin/WinSharedLibrary.h libhmsbeagle/plugin/WinSharedLibrary.cpp \
+         libhmsbeagle/CPU/BeagleCPUSSEPlugin.cpp; do
+  if grep -q $'\r' "$beagle_src/$f"; then
+    tr -d '\r' < "$beagle_src/$f" > "$beagle_src/$f.lf"
+    mv "$beagle_src/$f.lf" "$beagle_src/$f"
+  fi
+done
+
 (
   cd "$beagle_src"
   patch -p1 --batch < "$TOOL_DIR/patches/beagle-4.2-portability.patch"

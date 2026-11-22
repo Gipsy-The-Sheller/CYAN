@@ -51,6 +51,15 @@ rm -rf "$build" "$stage"
 mkdir -p "$work" "$stage"
 cp -a "$TOOL_DIR/src"/. "$work"/
 
+# Git checkouts on Windows may use CRLF; patch hunks are LF.
+for f in makefile refresh.mk src/utils/timer.h src/utils/timer.cpp \
+         libs/refresh/active_thread_pool/lib/utils.h; do
+  if grep -q $'\r' "$work/$f"; then
+    tr -d '\r' < "$work/$f" > "$work/$f.lf"
+    mv "$work/$f.lf" "$work/$f"
+  fi
+done
+
 log "Applying FAMSA portability patch"
 (
   cd "$work"
