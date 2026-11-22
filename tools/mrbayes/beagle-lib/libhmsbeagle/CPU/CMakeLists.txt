@@ -25,6 +25,11 @@ SET_TARGET_PROPERTIES(hmsbeagle-cpu
 	SUFFIX "${BEAGLE_PLUGIN_SUFFIX}"
     )
 
+if(NOT MSVC)
+	target_compile_options(hmsbeagle-cpu PRIVATE -fvisibility=hidden -fvisibility-inlines-hidden)
+endif(NOT MSVC)
+
+if(BUILD_SSE)
 add_library(hmsbeagle-cpu-sse SHARED
         BeagleCPU4StateSSEImpl.h
         BeagleCPU4StateSSEImpl.hpp
@@ -43,6 +48,11 @@ add_library(hmsbeagle-cpu-sse SHARED
         EigenDecompositionSquare.hpp
         Precision.h
         SSEDefinitions.h
+        SSEKernels.h
+        BeagleCPUAdjointSSE.h
+        BeagleCPUAdjointSSE.hpp
+        BeagleCPUAdjoint4StateSSE.h
+        BeagleCPUAdjoint4StateSSE.hpp
         )
 
 install(TARGETS hmsbeagle-cpu-sse
@@ -55,3 +65,63 @@ SET_TARGET_PROPERTIES(hmsbeagle-cpu-sse
     SOVERSION "${BEAGLE_PLUGIN_VERSION_EXTENDED}"
 	SUFFIX "${BEAGLE_PLUGIN_SUFFIX}"
     )
+
+if(NOT MSVC)
+	target_compile_options(hmsbeagle-cpu-sse PRIVATE -fvisibility=hidden -fvisibility-inlines-hidden)
+endif(NOT MSVC)
+endif(BUILD_SSE)
+
+if(BUILD_SPECTRAL)
+add_library(hmsbeagle-cpu-spectral SHARED
+        BeagleCPUSpectralImpl.h
+        BeagleCPUSpectralImpl.hpp
+        BeagleCPUSpectralPlugin.cpp
+        BeagleCPUSpectralPlugin.h
+        BeagleCPUSpectralSSEImpl.h
+        BeagleCPUSpectralSSEImpl.hpp
+        BeagleCPU4StateSpectralSSEImpl.h
+        BeagleCPU4StateSpectralSSEImpl.hpp
+        SSEDefinitions.h
+        SSEKernels.h
+        BeagleCPUAdjointSSE.h
+        BeagleCPUAdjointSSE.hpp
+        BeagleCPUAdjoint4StateSSE.h
+        BeagleCPUAdjoint4StateSSE.hpp
+        EigenDecomposition.h
+        EigenDecompositionSpectral.h
+        EigenDecompositionSpectral.hpp
+        AdjointMethods.h
+        AdjointMethods.hpp
+        Precision.h
+        )
+        
+# target_compile_options(hmsbeagle-cpu-spectral PRIVATE
+#     -fno-math-errno      # safe: no errno for math funcs
+#     -fno-trapping-math   # safe: assumes FP exceptions don't trap
+#     )        
+#     
+# target_compile_options(hmsbeagle-cpu-spectral PRIVATE
+#     -Rpass=loop-vectorize          # shows vectorized loops
+#     -Rpass-missed=loop-vectorize   # shows WHY a loop was skipped
+#     -Rpass-analysis=loop-vectorize # detailed analysis
+# 	)    
+
+install(TARGETS hmsbeagle-cpu-spectral
+	DESTINATION ${BEAGLE_INSTALL_DIR}
+	COMPONENT cpu_spectral
+    )
+
+SET_TARGET_PROPERTIES(hmsbeagle-cpu-spectral
+    PROPERTIES
+    SOVERSION "${BEAGLE_PLUGIN_VERSION_EXTENDED}"
+	SUFFIX "${BEAGLE_PLUGIN_SUFFIX}"
+    )
+
+if(NOT MSVC)
+	target_compile_options(hmsbeagle-cpu-spectral PRIVATE -fvisibility=hidden -fvisibility-inlines-hidden)
+endif(NOT MSVC)
+endif(BUILD_SPECTRAL)
+
+if(BUILD_OPENMP)
+	add_subdirectory("CMake_OpenMP")
+endif(BUILD_OPENMP)

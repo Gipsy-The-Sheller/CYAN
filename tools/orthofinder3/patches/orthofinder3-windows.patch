@@ -1,0 +1,144 @@
+--- a/orthofinder.py
++++ b/orthofinder.py
+@@ -3,5 +3,17 @@
+ from scripts_of.__main__ import main
+ 
+ if __name__ == "__main__":
++    # Required by PyInstaller on Windows: child processes are started by
++    # re-running this executable. Without freeze_support the child re-enters
++    # main() and recursively creates parallel task managers.
++    import multiprocessing
++    multiprocessing.freeze_support()
++    # Console code pages such as GBK cannot represent every byte that an
++    # external tool may emit; replacement keeps error reporting from crashing.
++    for stream in (sys.stdout, sys.stderr):
++        try:
++            stream.reconfigure(errors="replace")
++        except (AttributeError, ValueError):
++            pass
+     args = sys.argv[1:]
+     main(args)
+--- a/scripts_of/__main__.py
++++ b/scripts_of/__main__.py
+@@ -40,7 +40,9 @@
+     #     mp.set_start_method('spawn')
+ 
+ from . import parallel_task_manager
+-ptm_initialised = parallel_task_manager.ParallelTaskManager_singleton()
++# The parallel task manager is created inside main(). Creating it at import
++# time makes Windows multiprocessing spawn re-enter this module and start a
++# second manager before the child bootstrap has finished.
+ 
+ import os                                       # Y
+ os.environ["OPENBLAS_NUM_THREADS"] = "1"    # fix issue with numpy/openblas. Will mean that single threaded options aren't automatically parallelised 
+@@ -99,7 +101,7 @@
+ 
+ my_env = os.environ.copy()
+ # use orthofinder supplied executables by preference
+-my_env['PATH'] = os.path.join(__location__, 'bin:') + my_env['PATH']
++my_env['PATH'] = os.path.join(__location__, 'bin') + os.pathsep + my_env['PATH']
+ # Fix LD_LIBRARY_PATH when using pyinstaller 
+ if getattr(sys, 'frozen', False):
+     if 'LD_LIBRARY_PATH_ORIG' in my_env:
+@@ -115,12 +117,10 @@
+ def RunBlastDBCommand(command):
+     capture = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env, shell=True)
+     stdout, stderr = capture.communicate()
+-    try:
+-        stdout = stdout.decode()
+-        stderr = stderr.decode()
+-    except (UnicodeDecodeError, AttributeError):
+-        stdout = stdout.encode()
+-        stderr = stderr.encode()
++    if isinstance(stdout, bytes):
++        stdout = stdout.decode(errors="replace")
++    if isinstance(stderr, bytes):
++        stderr = stderr.decode(errors="replace")
+     n_stdout_lines = stdout.count("\n")
+     n_stderr_lines = stderr.count("\n")
+     nLines_success= 12
+--- a/scripts_of/parallel_task_manager.py
++++ b/scripts_of/parallel_task_manager.py
+@@ -54,7 +54,7 @@
+ 
+ # use user's executables by preference over OrthoFinder's
+ my_env = os.environ.copy()
+-my_env['PATH'] = my_env['PATH'] + ":" + os.path.join(__location__, 'bin')
++my_env['PATH'] = my_env['PATH'] + os.pathsep + os.path.join(__location__, 'bin')
+ # Fix LD_LIBRARY_PATH when using pyinstaller 
+ if getattr(sys, 'frozen', False):
+     if 'LD_LIBRARY_PATH_ORIG' in my_env:
+@@ -76,10 +76,8 @@
+ 
+ def stderr_exempt(stderr):
+     ok_line_starts = {"diamond v", "Licensed under the GNU GPL", "Check http://github.com/"}
+-    try:
+-        stderr = stderr.decode()
+-    except (UnicodeDecodeError, AttributeError):
+-        stderr = stderr.encode()
++    if isinstance(stderr, bytes):
++        stderr = stderr.decode(errors="replace")
+     lines = stderr.split("\n")
+     for line in lines:
+         if line.rstrip() == "": continue
+--- a/scripts_of/program_caller.py
++++ b/scripts_of/program_caller.py
+@@ -210,12 +210,11 @@
+         capture = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=parallel_task_manager.my_env)
+         stdout = [x for x in capture.stdout]
+         stderr = [x for x in capture.stderr]
+-        try:
+-            stdout = [x.decode() for x in stdout]
+-            stderr = [x.decode() for x in stderr]
+-        except (UnicodeDecodeError, AttributeError):
+-            stdout = [x.encode() for x in stdout]
+-            stderr = [x.encode() for x in stderr]
++        # Tool output can contain bytes that are not valid UTF-8 (notably on
++        # Windows). Decode with replacement instead of trying to re-encode an
++        # already-bytes object.
++        stdout = [x.decode(errors="replace") if isinstance(x, bytes) else x for x in stdout]
++        stderr = [x.decode(errors="replace") if isinstance(x, bytes) else x for x in stderr]
+         capture.communicate()
+         if actual_target_fns != None:
+             actual, target = actual_target_fns
+--- a/scripts_of/orthologues.py
++++ b/scripts_of/orthologues.py
+@@ -630,10 +630,7 @@
+         if recon_method == "dlcpar_convergedsearch":
+             capture = subprocess.Popen("dlcpar_search --version", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
+             stdout = [x for x in capture.stdout]
+-            try:
+-                stdout = "".join([x.decode() for x in stdout])
+-            except (UnicodeDecodeError, AttributeError):
+-                stdout = "".join([x.encode() for x in stdout])
++            stdout = "".join([x.decode(errors="replace") if isinstance(x, bytes) else x for x in stdout])
+             version = stdout.split()[-1]
+             tokens = list(map(int, version.split(".")))
+             major, minor = tokens[:2]
+--- a/scripts_of/trees_msa.py
++++ b/scripts_of/trees_msa.py
+@@ -351,8 +351,8 @@
+                 with open(dSpeciesTree + "Orthogroups_for_concatenated_alignment.txt", 'w') as outfile:
+                     for iog in iOgsForSpeciesTree: outfile.write("OG%07d\n" % iog)
+             # ids -> accessions
+-            alignmentFilesToUse = [self.GetAlignmentFilename(i) for i, in iogs_align]
+-            accessionAlignmentFNs = [self.GetAlignmentFilename(i, True) for i, in iogs_align]
++            alignmentFilesToUse = [self.GetAlignmentFilename(i) for i in iogs_align]
++            accessionAlignmentFNs = [self.GetAlignmentFilename(i, True) for i in iogs_align]
+             if qDoSpeciesTree: 
+                 alignmentFilesToUse.append(concatenated_algn_fn)
+                 accessionAlignmentFNs.append(files.FileHandler.GetSpeciesTreeConcatAlignFN(True))
+--- a/scripts_of/config.json
++++ b/scripts_of/config.json
+@@ -18,6 +18,11 @@
+     "cmd_line": "mafft --anysymbol --memsave INPUT > OUTPUT"
+     },
+ 
++    "famsa":{
++    "program_type": "msa",
++    "cmd_line": "famsa -t 1 INPUT OUTPUT"
++    },
++
+     "fasttree_fastest":{
+     "program_type": "tree",
+     "cmd_line": "FastTree -fastest INPUT > OUTPUT"

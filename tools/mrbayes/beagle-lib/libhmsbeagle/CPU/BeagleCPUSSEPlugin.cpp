@@ -24,7 +24,7 @@ BeagleCPUSSEPlugin::BeagleCPUSSEPlugin() :
 Plugin("CPU-SSE", "CPU-SSE")
 {
 	BeagleResource resource;
-#ifdef __ARM64_ARCH_8__
+#ifdef __aarch64__
 	    resource.name = (char*) "CPU (arm64)";
 #else
         resource.name = (char*) "CPU (x86_64)";
@@ -116,17 +116,19 @@ bool check_sse2()
   if (edx & bit_SSE2)
 	return true;
   return false;
+#elif defined(__aarch64__)
+  return true; // NEON is part of every AArch64 CPU, and sse2neon maps the SSE2 intrinsics to it
 #else // HAVE_CPUID.H
 	// Determine if cpuid supported:
     unsigned int res;
     __asm__("mov %%ecx, %%eax;"
             "xor $200000, %%eax;"
             "xor %%ecx, %%eax;"
-            "je no;"
+            "je 1f;"
             "mov $1, %%eax;"
-            "jmp end;"
-            "no: mov $0, %%eax;"
-            "end:;"
+            "jmp 2f;"
+            "1: mov $0, %%eax;"   /* numeric local labels: the compiler may emit this asm more than once */
+            "2:;"
             : "=a" (res)
             :
             : "cc");
@@ -158,8 +160,8 @@ bool check_sse2()
     return result[3] & 0x04000000;
 #endif // HAVE_CPUID.H
 }
-#else // For Mac OS X GNU C
-#if defined(__ARM64_ARCH_8__)
+#else
+#if defined(__aarch64__)
 bool check_sse2() { return 1; }
 #else
 bool check_sse2(){
@@ -174,7 +176,7 @@ bool check_sse2(){
 #endif
 
 
-void* plugin_init(void){
+BEAGLE_PLUGIN_EXPORT void* plugin_init(void){
 	if(!check_sse2()){
 		return NULL;	// no SSE no plugin?!
 	}

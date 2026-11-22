@@ -1,0 +1,210 @@
+--- a/makefile
++++ b/makefile
+@@ -31,6 +31,7 @@
+ $(call SET_COMPILER_VERSION_ALLOWED, GCC, Linux_aarch64, 11, 20)
+ $(call SET_COMPILER_VERSION_ALLOWED, GCC, Darwin_x86_64, 11, 13)
+ $(call SET_COMPILER_VERSION_ALLOWED, GCC, Darwin_arm64, 11, 13)
++$(call SET_COMPILER_VERSION_ALLOWED, GCC, Windows_x86_64, 11, 20)
+ 
+ ifneq ($(MAKECMDGOALS),clean)
+ $(call CHECK_COMPILER_VERSION)
+--- a/refresh.mk
++++ b/refresh.mk
+@@ -37,7 +37,7 @@
+ 
+ 	$(eval zlib-ng: $(ZLIB_A))
+ 	$(eval $(ZLIB_A) : ; \
+-		cd $(ZLIB_DIR) && cmake $(CMAKE_OSX_FIX) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) -B build-g++/zlib-ng -S . -DZLIB_COMPAT=OFF -DWITH_GZFILEOP=ON; cmake --build build-g++/zlib-ng --config Release)
++		cd $(ZLIB_DIR) && cmake $(CMAKE_OSX_FIX) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) -B build-g++/zlib-ng -S . -DZLIB_COMPAT=OFF -DWITH_GZFILEOP=ON; cmake --build build-g++/zlib-ng --config Release --target zlibstatic)
+ endef
+ 
+ # Propose zlib-ng (to be considered by CHOOSE_...)
+@@ -49,7 +49,7 @@
+ 
+ 	$(eval zlib-ng: $(ZLIB_A))
+ 	$(eval $(ZLIB_A) : ; \
+-		cd $(ZLIB_DIR) && cmake $(CMAKE_OSX_FIX) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) -B build-g++/zlib-ng -S . -DZLIB_COMPAT=OFF -DWITH_GZFILEOP=ON; cmake --build build-g++/zlib-ng --config Release)
++		cd $(ZLIB_DIR) && cmake $(CMAKE_OSX_FIX) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) -B build-g++/zlib-ng -S . -DZLIB_COMPAT=OFF -DWITH_GZFILEOP=ON; cmake --build build-g++/zlib-ng --config Release --target zlibstatic)
+ endef
+ 
+ # Propose isa-l (to be considered by CHOOSE_...)
+@@ -602,7 +602,7 @@
+ 		$(error Compiler does not exist) \
+ 	)
+ 
+-	$(eval COMPILER_VERSION_FULL:=$(shell $(CXX) --version | sed -n '1s/^[^0-9]*\([0-9\.]*\).*$$/\1/p'))
++	$(eval COMPILER_VERSION_FULL:=$(shell $(CXX) -dumpversion))
+ 	$(eval COMPILER_VERSION_MAJOR:=$(firstword $(subst ., ,$(COMPILER_VERSION_FULL))))
+ 
+ 	$(eval COMPILER_DESC:=$(subst g++,GCC,$(COMPILER_DESC)))
+@@ -651,6 +651,10 @@
+ 		) \
+ 	)
+ 
++	$(if $(filter Windows_x86_64,$(OS_ARCH_TYPE)), \
++		$(eval PLATFORM_SPECIFIC_C_FLAGS:=-include cstdint -DWIN32) \
++		$(eval PLATFORM_SPECIFIC_CPP_FLAGS:=-include cstdint -DWIN32) \
++	)
+ 	$(eval C_FLAGS+=-std=$(C_STD) -Wall -fPIC -pthread -fpermissive $(PLATFORM_SPECIFIC_C_FLAGS))
+ 	$(eval CPP_FLAGS+=-std=$(CPP_STD) -Wall -fPIC -pthread -fpermissive $(PLATFORM_SPECIFIC_CPP_FLAGS))
+ 	$(eval LINKER_FLAGS+=-lm -lpthread $(PLATFORM_SPECIFIC_LINKER_FLAGS) $(STATIC_LFLAGS))
+@@ -720,10 +724,9 @@
+ # Choose lib for gzip decompression
+ define CHOOSE_GZIP_DECOMPRESSION
+ 	$(if $(filter x86_64,$(ARCH_TYPE)), \
+-    	$(if $(and $(NASM_VERSION),$(ISAL_DIR)), \
++    	$(if $(and $(ISAL_DIR),$(wildcard $(ISAL_A))), \
+ 			$(eval GZ_TARGET:=isa-l) \
+-			$(eval PREBUILD_JOBS+=isa-l) \
+-			$(eval INCLUDE_DIRS+=-I$(ISAL_DIR)/include) ,\
++						$(eval INCLUDE_DIRS+=-I$(ISAL_DIR)/include) ,\
+ 			$(eval GZ_TARGET:=zlib-ng) \
+ 			$(eval PREBUILD_JOBS+=zlib-ng) \
+ 			$(eval INCLUDE_DIRS+=-I$(ZLIB_DIR)/build-g++ -I$(ZLIB_DIR)/build-g++/zlib-ng) \
+@@ -756,6 +759,7 @@
+ 		$(eval ARCH_TYPE:=x86_64), \
+ 		$(eval OS_TYPE:=$(shell uname -s 2>/dev/null || echo not)) \
+ 		$(eval ARCH_TYPE:=$(shell uname -m 2>/dev/null || echo not)) \
++		$(if $(filter MINGW% MSYS% CYGWIN%,$(OS_TYPE)),$(eval OS_TYPE:=Windows)) \
+ 		)
+ 
+ 	$(eval OS_ARCH_TYPE:=$(OS_TYPE)_$(ARCH_TYPE))
+@@ -833,7 +837,10 @@
+ 
+ define INIT_SUBMODULES
+ 	$(info *** Initialization of submodules ***)
+-	$(eval dummy:=$(shell git submodule update --init --recursive --jobs=8))
++	$(if $(wildcard .git), \
++		$(eval dummy:=$(shell git submodule update --init --recursive --jobs=8)), \
++		$(info Submodules are vendored; skipping git submodule update.) \
++	)
+ endef
+ 
+ ### Clean library targets
+--- a/src/utils/timer.h
++++ b/src/utils/timer.h
+@@ -9,38 +9,27 @@
+ #ifndef _TIMER_H
+ #define _TIMER_H
+ 
+-#ifdef WIN32
+-#include <windows.h>
++#if defined(WIN32) || defined(_WIN32)
++#include <chrono>
+ 
+-// **********************************************************
+-typedef struct 
++typedef struct
+ {
+-	LARGE_INTEGER start;
+-	LARGE_INTEGER stop;
++	std::chrono::steady_clock::time_point start;
++	std::chrono::steady_clock::time_point stop;
+ } stop_watch_t;
+ 
+-// **********************************************************
+-class CStopWatch 
++class CStopWatch
+ {
+ 	stop_watch_t timer;
+-	LARGE_INTEGER frequency;
+-	double LIToSecs( LARGE_INTEGER & L);
+ 
+ public:
+ 	CStopWatch();
+-	void StartTimer( );
+-	void StopTimer( );
++	void StartTimer();
++	void StopTimer();
+ 	double GetElapsedTime();
+ };
+ 
+-// **********************************************************
+-typedef struct
+-{
+-	ULARGE_INTEGER start;
+-	ULARGE_INTEGER stop;
+-} thread_watch_t;
+-
+-
++typedef std::chrono::steady_clock::time_point thread_watch_t;
+ 
+ #else
+ #include <sys/time.h>
+--- a/src/utils/timer.cpp
++++ b/src/utils/timer.cpp
+@@ -6,53 +6,34 @@
+ 
+ */
+ 
+-#ifdef WIN32
+-#include <windows.h>
+-#endif
++
+ 
+ #include <cstdio> // NULL
+ #include "timer.h"
+ 
+ 
+ #ifdef WIN32
+-// **********************************************************
+-double CStopWatch::LIToSecs( LARGE_INTEGER & L) 
+-{
+-	return ((double)L.QuadPart /(double)frequency.QuadPart);
+-}
+-
+-// **********************************************************
+-// CStopWatch
+-// **********************************************************
+ CStopWatch::CStopWatch()
+ {
+-	timer.start.QuadPart=0;
+-	timer.stop.QuadPart=0;	
+-
+-	QueryPerformanceFrequency( &frequency );
++	StartTimer();
++	StopTimer();
+ }
+ 
+-// **********************************************************
+-void CStopWatch::StartTimer( ) 
++void CStopWatch::StartTimer()
+ {
+-    QueryPerformanceCounter(&timer.start);
++	timer.start = std::chrono::steady_clock::now();
+ }
+ 
+-// **********************************************************
+-void CStopWatch::StopTimer( ) 
++void CStopWatch::StopTimer()
+ {
+-    QueryPerformanceCounter(&timer.stop);
++	timer.stop = std::chrono::steady_clock::now();
+ }
+ 
+-// **********************************************************
+-double CStopWatch::GetElapsedTime() 
++double CStopWatch::GetElapsedTime()
+ {
+-	LARGE_INTEGER time;
+-	time.QuadPart = timer.stop.QuadPart - timer.start.QuadPart;
+-    return LIToSecs(time);
++	return std::chrono::duration<double>(timer.stop - timer.start).count();
+ }
+ 
+-
+ #else
+ // **********************************************************
+ CStopWatch::CStopWatch()
+--- a/libs/refresh/active_thread_pool/lib/utils.h
++++ b/libs/refresh/active_thread_pool/lib/utils.h
+@@ -2,6 +2,9 @@
+ 
+ #include <atomic>
+ #include <cinttypes>
++#if defined(_WIN32)
++#include <immintrin.h>
++#endif
+ 
+ namespace refresh
+ {

@@ -27,8 +27,8 @@ The paper describing the algorithms used for calculating likelihoods of sequence
 
 ### Current binary installers
 
-* [BEAGLE v4.0.0 for macOS universal](https://github.com/beagle-dev/beagle-lib/releases/download/v4.0.0/BEAGLE.v4.0.0.pkg)
-* [BEAGLE v4.0.0 for Windows 64-bit](https://github.com/beagle-dev/beagle-lib/releases/download/v4.0.0/BEAGLE.v4.0.0.msi)
+* [BEAGLE v4.0.0 for macOS universal](https://github.com/beagle-dev/beagle-lib/releases/download/v4.0.0/BEAGLE-4.0.0-Darwin-x86-ARM.pkg)
+* [BEAGLE v4.0.0 for Windows 64-bit](https://github.com/beagle-dev/beagle-lib/releases/download/v4.0.0/BEAGLE-4.0.0-win64.msi)
 
 ### Previous binary installers
 
@@ -48,6 +48,10 @@ The paper describing the algorithms used for calculating likelihoods of sequence
 * [Release notes](https://github.com/beagle-dev/beagle-lib/wiki/ReleaseNotes)
 * [API documentation](https://beagle-dev.github.io/html/beagle_8h.html)
 * [Phylogenetic Software Development Tutorial](https://stromtutorial.github.io/)
+
+### Code signing
+
+* Free code signing provided by [SignPath.io](https://about.signpath.io/?), certificate by [SignPath Foundation](https://signpath.org). This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
 
 ### Acknowledgements
 

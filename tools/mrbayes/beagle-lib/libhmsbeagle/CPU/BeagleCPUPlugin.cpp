@@ -17,7 +17,7 @@ BeagleCPUPlugin::BeagleCPUPlugin() :
 Plugin("CPU", "CPU")
 {
 	BeagleResource resource;
-#ifdef __ARM64_ARCH_8__
+#ifdef __aarch64__
 	    resource.name = (char*) "CPU (arm64)";
 #else
         resource.name = (char*) "CPU (x86_64)";
@@ -50,7 +50,7 @@ Plugin("CPU", "CPU")
 
 
 extern "C" {
-void* plugin_init(void){
+BEAGLE_PLUGIN_EXPORT void* plugin_init(void){
 	return new beagle::cpu::BeagleCPUPlugin();
 }
 }

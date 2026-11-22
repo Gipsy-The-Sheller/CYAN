@@ -72,8 +72,8 @@ EOF
   die "showbeagle failed"
 }
 tr -d '\r' < "$smoke/show.log" > "$smoke/show.clean.log"
-grep -q 'BEAGLE version: 4\.0\.0' "$smoke/show.clean.log" \
-  || die "BEAGLE 4.0.0 was not loaded"
+grep -q 'BEAGLE version: 4\.2\.0' "$smoke/show.clean.log" \
+  || die "BEAGLE 4.2.0 was not loaded"
 grep -q 'THREADING_CPP' "$smoke/show.clean.log" \
   || die "BEAGLE CPU threading was not reported"
 grep -q 'VECTOR_SSE' "$smoke/show.clean.log" \

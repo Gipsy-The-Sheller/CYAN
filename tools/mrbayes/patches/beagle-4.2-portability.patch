@@ -1,0 +1,129 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -122,20 +122,20 @@
+ #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
+ 
+-if(WIN32)
++if(MSVC)
+ 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+-else(WIN32)
++else()
+ 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+ 	# the -O2 of RelWithDebInfo comes after CMAKE_CXX_FLAGS on the command line and would override the -O3 below
+ 	string(REPLACE "-O2" "-O3" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+-endif(WIN32)
++endif()
+ 
+ if (NOT "${CMAKE_BUILD_TYPE}" MATCHES Debug)
+-        if(WIN32)
++        if(MSVC)
+ 	        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Ox /Ot")
+-        else(WIN32)
++        else()
+ 	        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+-        endif(WIN32)
++        endif()
+ endif()
+ 
+ #if(NOT WIN32)
+@@ -244,7 +244,9 @@
+ 
+ enable_testing()
+ 
+-add_subdirectory(examples)
++if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
++    add_subdirectory(examples)
++endif()
+ 
+ IF(BEAGLE_DEBUG_KERNELS)
+     add_subdirectory(tests/tensor_cores)
+@@ -322,8 +324,8 @@
+ if(APPLE)
+ 	set(CPACK_GENERATOR productbuild)
+ 	set(CPACK_BUNDLE_NAME "${BEAGLE_PACKAGE_NAME}")
+-	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/project/beagle-vs-2019-wix/LICENSE.rtf")
+-	set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/project/beagle-macos/README.txt")
++	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
++	set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+ 
+ 	set(CPACK_PRODUCTBUILD_BACKGROUND_UTI "${CMAKE_CURRENT_SOURCE_DIR}/project/beagle-vs-2019-wix/welcome.jpg")
+ 
+--- a/libhmsbeagle/CMakeLists.txt
++++ b/libhmsbeagle/CMakeLists.txt
+@@ -14,10 +14,14 @@
+ 	    plugin/WinSharedLibrary.h
+         )
+ 
+-    set(BEAGLE_INTEGRATED_JNI_SOURCE
+-        JNI/beagle_BeagleJNIWrapper.cpp
+-        JNI/beagle_BeagleJNIWrapper.h
+-        )
++    if(BUILD_JNI)
++        set(BEAGLE_INTEGRATED_JNI_SOURCE
++            JNI/beagle_BeagleJNIWrapper.cpp
++            JNI/beagle_BeagleJNIWrapper.h
++            )
++    else()
++        set(BEAGLE_INTEGRATED_JNI_SOURCE)
++    endif()
+ else(WIN32)
+ 	set(BEAGLE_PLUGIN_SUFFIX ".so")
+     set(BEAGLE_INSTALL_DIR lib)
+--- a/libhmsbeagle/plugin/WinSharedLibrary.h
++++ b/libhmsbeagle/plugin/WinSharedLibrary.h
+@@ -25,18 +25,15 @@
+ class WinSharedLibrary : public SharedLibrary
+ {
+   public:
+-    WinSharedLibrary(const char* name)
+-    throw (SharedLibraryException);
++    WinSharedLibrary(const char* name);
+     ~WinSharedLibrary();
+ 
+-    void* findSymbol(const char* name)
+-    throw (SharedLibraryException);
++    void* findSymbol(const char* name);
+ 
+   private:
+     HINSTANCE m_handle;
+ };
+ WinSharedLibrary::WinSharedLibrary(const char* name)
+-    throw (SharedLibraryException)
+     : m_handle(0)
+ {
+ 	std::string libname = name;
+@@ -78,9 +75,9 @@
+     }
+ }
+ void* WinSharedLibrary::findSymbol(const char* name)
+-    throw (SharedLibraryException)
++
+ {
+-    void* sym = GetProcAddress(m_handle,name);
++    void* sym = (void*) GetProcAddress(m_handle,name);
+     if (sym == 0)
+     {
+     char buffer[255];
+--- a/libhmsbeagle/plugin/WinSharedLibrary.cpp
++++ b/libhmsbeagle/plugin/WinSharedLibrary.cpp
+@@ -17,7 +17,7 @@
+ namespace plugin {
+ 
+ SharedLibrary* SharedLibrary::openSharedLibrary(const char* name)
+-    throw (SharedLibraryException)
++
+ {
+     return new WinSharedLibrary(name);
+ }
+--- a/libhmsbeagle/CPU/BeagleCPUSSEPlugin.cpp
++++ b/libhmsbeagle/CPU/BeagleCPUSSEPlugin.cpp
+@@ -95,7 +95,7 @@
+ 
+ #endif
+ 
+-#ifdef __GNUC__
++#if defined(__GNUC__) && !defined(_WIN32)
+ #if !defined(DLS_MACOS) // For non-Mac OS X GNU C
+ bool check_sse2()
+ {

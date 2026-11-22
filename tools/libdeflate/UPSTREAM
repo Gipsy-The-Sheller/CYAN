@@ -1,0 +1,4 @@
+url=https://github.com/refresh-bio-dependencies/libdeflate
+commit=ced051e1c260c7008f312400a0471aecf37aa1e0
+version=1.21
+license=MIT

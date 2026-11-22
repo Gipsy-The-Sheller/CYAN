@@ -1,4 +1,3 @@
-
 #define multBy4(x)  ((x) << 2)
 #define multBy16(x) ((x) << 4)
 
@@ -40,8 +39,8 @@ KW_GLOBAL_KERNEL void kernelPartialsPartialsGrowingMulti(KW_GLOBAL_VAR REAL* KW_
                                                          int gridStartOp,
                                                          int totalPatterns) {
 
-#ifdef FW_OPENCL_CPU // CPU/MIC implementation
-    todo(); // TODO
+#ifdef FW_OPENCL_CPU // CPU/MIC implementationt
+    todo(); // TODOg
 #else // GPU implementation
     DETERMINE_INDICES_4_MULTI_1_GPU();
     const KW_GLOBAL_VAR REAL* KW_RESTRICT partials1 =  partials + ptrOffsets[opIndexPtr + 2];
@@ -58,6 +57,7 @@ KW_GLOBAL_KERNEL void kernelPartialsPartialsGrowingMulti(KW_GLOBAL_VAR REAL* KW_
 #endif // FW_OPENCL_CPU
 }
 
+#ifndef CUDA_TENSOR_CORES // kernels4DerivativesTensorCore.cu has the tensor-core version of this kernel
 KW_GLOBAL_KERNEL void kernelPartialsPartialsGrowing(KW_GLOBAL_VAR REAL* KW_RESTRICT partials1,
                                                     KW_GLOBAL_VAR REAL* KW_RESTRICT partials2,
                                                     KW_GLOBAL_VAR REAL* KW_RESTRICT partials3,
@@ -127,6 +127,7 @@ KW_GLOBAL_KERNEL void kernelPartialsPartialsGrowing(KW_GLOBAL_VAR REAL* KW_RESTR
     }
 #endif // FW_OPENCL_CPU
 }
+#endif // CUDA_TENSOR_CORES
 
 KW_GLOBAL_KERNEL void kernelPartialsStatesGrowing(KW_GLOBAL_VAR REAL* KW_RESTRICT partials1,
                                                   KW_GLOBAL_VAR int*  KW_RESTRICT states2,
@@ -459,7 +460,8 @@ KW_GLOBAL_KERNEL void kernelPartialsStatesCrossProducts(KW_GLOBAL_VAR REAL* KW_R
                                                         const int totalNodes,
                                                         const int categoryCount,
                                                         const int rateOffset,
-                                                        const int accumulate) {
+                                                        const int accumulate,
+                                                        const int missingState) {
   #ifdef FW_OPENCL_CPU // CPU/MIC implementation
       todo(); // Not implemented
   #else // GPU implementation
@@ -524,7 +526,7 @@ KW_GLOBAL_KERNEL void kernelPartialsStatesCrossProducts(KW_GLOBAL_VAR REAL* KW_R
             const KW_GLOBAL_VAR int* KW_RESTRICT postStates = states0 + statesOffset;
  
             const int stateData = postStates[pattern + pat]; // patterns are already padded mod 4
-            post[tx] = (state == stateData) ? (REAL) 1.0 : (REAL) 0.0;
+            post[tx] = (state == stateData) ? (REAL) 1.0 : (REAL) 0.0; // TODO | stateData >= missingState ?
 
               for (int c = 0; c < categoryCount; ++c) {
   

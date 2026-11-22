@@ -23,40 +23,12 @@
 #define DLS_USE_SSE2
 
 #if defined(DLS_USE_SSE2)
-#	if defined(__ARM64_ARCH_8__)
+#	if defined(__aarch64__)
 #		include "libhmsbeagle/CPU/sse2neon.h"
 #       define _MM_SHUFFLE2(fp1,fp0) (((fp1) << 1) | (fp0))
 #		define VEC_SHUFFLE0(a,b)	_mm_shuffle_pd(a, b, _MM_SHUFFLE2(0,0)) // vreinterpretq_f64_m128d(a)
 #		define VEC_SHUFFLE1(a,b)	_mm_shuffle_pd(a, b, _MM_SHUFFLE2(1,1)) // vreinterpretq_f64_m128d(a)
-#       if __has_builtin(__builtin_shufflevector)
-#       	define _mm_shuffle_pd(a,b,imm)                                \
-				__extension__({                                           \
-		        float64x2_t _input1 = vreinterpretq_f64_m128(a);          \
-	    	    float64x2_t _input2 = vreinterpretq_f64_m128(b);          \
-		        float64x2_t _shuf = __builtin_shufflevector(              \
-	    	        _input1, _input2, (imm) & (0x1), ((imm) >> 1) & 0x1); \
-	        	vreinterpretq_m128_f32(_shuf);                            \
-    	    })
-#		else
-#			error "Need to implement NEON translation of _mm_shuffle_pd"
-#		endif
 
-		static inline __m128 _mm_div_pd(__m128 a, __m128 b) {
-		    return vreinterpretq_m128_f64(
-        		vdivq_f64(vreinterpretq_f64_m128(a), vreinterpretq_f64_m128(b)));
-		}
-
-		static inline void _mm_store_sd(double* a, __m128 b) {
-			const auto _b = vreinterpretq_f64_m128(b);
-			a[0] = _b[0];
-		}
-
-        static inline __m128 _mm_dp_pd(__m128 lhs, __m128 rhs, const int) {
-            auto const product = vmulq_f64(vreinterpretq_f64_m128d(lhs),
-                                           vreinterpretq_f64_m128d(rhs));
-            auto const sum = product[0] + product[1]; // TODO Almost surely an more efficient way
-            return vreinterpretq_m128d_f64(vdupq_n_f64(sum));
-        }
 #   else
 #		if !defined(DLS_MACOS)
 #			include <emmintrin.h>
@@ -80,15 +52,26 @@ typedef double VecEl_t;
 	typedef __m128d	V_Real;
 #	define REALS_PER_VEC	2	/* number of elements per vector */
 #	define VEC_LOAD(a)			_mm_load_pd(a)
+#	define VEC_LOADU(a)			_mm_loadu_pd(a)
 #	define VEC_LOAD_SCALAR(a)	_mm_load1_pd(a)
 #	define VEC_STORE(a, b)		_mm_store_pd((a), (b))
 #   define VEC_STORE_SCALAR(a, b) _mm_store_sd((a), (b))
 #   define VEC_STOREU(a, b)     _mm_storeu_pd((a), (b))
 #	define VEC_MULT(a, b)		_mm_mul_pd((a), (b))
 #	define VEC_DIV(a, b)		_mm_div_pd((a), (b))
-#	define VEC_MADD(a, b, c)	_mm_add_pd(_mm_mul_pd((a), (b)), (c))
+#	if defined(__aarch64__)
+#		define VEC_MADD(a, b, c)	vfmaq_f64((c), (a), (b)) /* fused (a * b) + c; __m128d is float64x2_t */
+#	else
+#		define VEC_MADD(a, b, c)	_mm_add_pd(_mm_mul_pd((a), (b)), (c))
+#	endif
 #	define VEC_SPLAT(a)			_mm_set1_pd(a)
 #	define VEC_ADD(a, b)		_mm_add_pd(a, b)
+#	define VEC_SUB(a, b)		_mm_sub_pd((a), (b))
+#	define VEC_MAX(a, b)		_mm_max_pd((a), (b)) /* b if either is NaN on x86 */
+#	define VEC_CMPLT(a, b)		_mm_cmplt_pd((a), (b))
+#	define VEC_AND(a, b)		_mm_and_pd((a), (b))
+#	define VEC_ANDNOT(a, b)		_mm_andnot_pd((a), (b)) /* (~a) & b */
+#	define VEC_OR(a, b)			_mm_or_pd((a), (b))
 #   define VEC_SWAP(a)			_mm_shuffle_pd(a, a, _MM_SHUFFLE2(0,1))
 # 	define VEC_SETZERO()		_mm_setzero_pd()
 #	define VEC_SET1(a)			_mm_set_sd((a))

@@ -164,6 +164,10 @@ and cross-platform tools.
 | ASTER v1 | 1.25 | Windows x64, Linux x64/arm64, macOS arm64 | [chaoszhang/ASTER](https://github.com/chaoszhang/ASTER) tag `v1.25` | AGPL-3.0 |
 | HyPhy | 2.5.103 | Windows x64 (MSYS), Linux x64/arm64, macOS arm64 | [veg/hyphy](https://github.com/veg/hyphy) tag `2.5.103` | MIT |
 | BMGE | 2.0 | platform-neutral jar (one package) | [GIPhy/BMGE](https://gitlab.pasteur.fr/GIPhy/BMGE) commit `4539aa6` | GPL-3.0 |
+| FAMSA | 2.5.2 | Windows x64, Linux x64/arm64 | [refresh-bio/FAMSA](https://github.com/refresh-bio/FAMSA) tag `v2.5.2` | GPL-3.0 |
+| ISA-L | 2.30.0 | Windows x64, Linux x64 | [refresh-bio-dependencies/isa-l](https://github.com/refresh-bio-dependencies/isa-l) commit `7e39a2b` | BSD-3-Clause |
+| libdeflate | 1.21 | all five targets | [refresh-bio-dependencies/libdeflate](https://github.com/refresh-bio-dependencies/libdeflate) commit `ced051e` | MIT |
+| OrthoFinder | 3.0.1b1 | Windows x64, Linux x64 | [davidemms/OrthoFinder](https://github.com/davidemms/OrthoFinder) commit `43f9bc7` | LGPL-3.0 (MAFFT BSD-3-Clause) |
 
 LSD2 is vendored unmodified from upstream commit
 `c61110f3a4fa05325b45c97b2134792ff9d55d4c` (2024-10-25). Its `LICENSE` file is
@@ -174,10 +178,12 @@ PhyloBayes-MPI is vendored unmodified from upstream tag `v1.9`
 Microsoft MPI SDK and runtime; Linux and macOS builds use `mpicxx`. Windows
 arm64 is not supported because Microsoft MPI has no ARM64 SDK.
 
-MrBayes is vendored from tag `v3.2.8` (`1d9acf0…`) with BEAGLE 4.0.0
-(`1d4b21d…`). Patches enable BEAGLE on `WIN_VERSION`, adapt BEAGLE's
-CMake/Windows loader for MinGW, fix the duplicate `check_sse2` definition,
-and cap BEAGLE CPU threads to the number of physical cores.
+MrBayes is vendored from tag `v3.2.8` (`1d9acf0…`) with BEAGLE 4.2.0
+(`02bc407…`). BEAGLE 4.2 selects its `__aarch64__`/sse2neon NEON path by
+default, so CYAN no longer carries local NEON patches. A small patch adapts
+BEAGLE's CMake/Windows loader for MinGW and disables the JNI source when
+JNI is off; a MrBayes patch enables BEAGLE on `WIN_VERSION`, and another
+caps BEAGLE CPU threads to the number of physical cores.
 `beaglethreadcount=99` (auto) is resolved to the physical core count;
 explicit values above that are capped, and smaller values are kept.
 
@@ -459,6 +465,58 @@ configure script. CYAN compiles the 17-file `tingea` library directly, then
 runs MCL's configure and builds only the `mcl` executable. A MinGW patch
 handles the missing `SIGALRM`/`SIGUSR1`, `srandom`/`random` and `getppid`.
 The package root is `mcl/`, matching `YR_MPE/bin/mcl/mcl(.exe)`.
+
+### FAMSA and shared compression libraries
+
+FAMSA 2.5.2 is a progressive multiple-sequence aligner. OrthoFinder's
+default MSA backend is still MAFFT, but the OrthoFinder package also bundles
+FAMSA and adds an `-A famsa` entry to `config.json`. FAMSA's Windows build
+needs a portability patch: MSYS `uname` is normalized to `Windows`, compiler
+detection uses `-dumpversion`, zlib-ng builds only `zlibstatic`, timing uses
+`std::chrono`, and the vendored tree skips `git submodule update`.
+
+FAMSA bundles zlib-ng and mimalloc, but CYAN builds **libdeflate** and
+**ISA-L** as standalone packages first (`tools/libdeflate`, `tools/isa-l`)
+and feeds the static archives into FAMSA's `libs/` layout. The same archives
+can serve fastp later. `tools/famsa/DEPENDS` lists the dependencies;
+`scripts/build_all.sh` topologically sorts selected tools, and FAMSA builds
+a missing dependency itself when invoked alone.
+
+ISA-L is x86-64 only. Linux arm64 FAMSA uses zlib-ng for gzip decoding;
+macOS is not built because FAMSA's makefile requires GCC, not AppleClang.
+Windows links dynamically and ships the three MinGW runtime DLLs. Linux links
+statically. The package root is `famsa/`.
+
+### OrthoFinder 3
+
+OrthoFinder 3.0.1b1 is packaged with PyInstaller as a one-folder application:
+`orthofinder(.exe)` sits at the package root and `_internal/` contains Python
+3.12 plus numpy, scipy, scikit-learn and biopython. This is the practical
+form of "packaging the venv" — a full venv cannot be relocated reliably after
+extraction. YR-MPE keeps its own Python interpreter; OrthoFinder does not use
+it.
+
+`patches/orthofinder3-windows.patch` fixes issues exposed by the frozen
+Windows build:
+
+- `multiprocessing.freeze_support()` prevents child processes from re-entering
+  `main()` and recursively spawning managers.
+- The parallel task manager is created in `main()`, not at module import.
+- PATH entries use `os.pathsep` (`;` on Windows, `:` elsewhere).
+- Non-UTF-8 tool output is decoded with replacement instead of re-encoding a
+  bytes object.
+- The `-oa` (stop after alignments) path unpacked `(i,)` from a list of ints.
+- `config.json` gains a FAMSA MSA method: `-A famsa`.
+
+Native dependencies are copied to `orthofinder/bin/`: DIAMOND, MCL, FastTree,
+FastME, ASTRAL-Pro v1 and FAMSA. Windows also bundles CYAN's MAFFT package;
+Linux x64 reuses OrthoFinder's own MAFFT runtime from
+`vendor/mafft-linux-x64.tar.gz` (extracted under `bin/mafft/`, where
+OrthoFinder's fallback looks). macOS and Linux arm64 are not built yet because
+no portable MAFFT runtime is bundled for them.
+
+The package root is `orthofinder/`, matching YR-MPE's configured
+`YR_MPE/bin/orthofinder/orthofinder.exe`.
 
 ### TrimAl
 

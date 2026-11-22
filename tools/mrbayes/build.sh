@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 #
-# Build MrBayes 3.2.8 with BEAGLE 4.0.0 and MPI.
+# Build MrBayes 3.2.8 with BEAGLE 4.2.0 and MPI.
 #
 # Windows x64: MSYS2 MINGW64 + MS-MPI. MrBayes upstream disables BEAGLE for
 # WIN_VERSION; a patch enables it. BEAGLE is built with the generic CPU and
 # SSE plugins.
 #
-# Linux x64/arm64, macOS arm64: OpenMPI (mpicc) + BEAGLE CPU/SSE (SSE2 mapped
-# to NEON on ARM64). The runtime MPI and BEAGLE libraries are bundled.
+# Linux x64/arm64, macOS arm64: OpenMPI (mpicc) + BEAGLE CPU/SSE. On ARM64
+# BEAGLE 4.2 selects its sse2neon/NEON path by default; no local NEON patch
+# is needed. The runtime MPI and BEAGLE libraries are bundled.
 
 set -euo pipefail
 
@@ -28,32 +29,19 @@ rm -rf "$build"
 mkdir -p "$build"
 
 # ----------------------------------------------------------------------
-# BEAGLE 4.0.0: core library + generic CPU and CPU-SSE plugins
+# BEAGLE 4.2.0: core library + generic CPU and CPU-SSE plugins
 # ----------------------------------------------------------------------
-log "Building BEAGLE 4.0.0 ($CYAN_PLATFORM $CYAN_ARCH)"
+log "Building BEAGLE 4.2.0 ($CYAN_PLATFORM $CYAN_ARCH)"
 cp -a "$TOOL_DIR/beagle-lib" "$beagle_src"
 
+(
+  cd "$beagle_src"
+  patch -p1 --batch < "$TOOL_DIR/patches/beagle-4.2-portability.patch"
+)
+
 cmake_cxx_flags=""
-if [[ "$CYAN_PLATFORM" == windows ]]; then
-  (
-    cd "$beagle_src"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cmake-mingw.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-winsharedlibrary-mingw.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-winsharedlibrary-mingw-cpp.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-neon.patch"
-  )
-  [[ "$CYAN_ARCH" == x64 ]] && cmake_cxx_flags="-msse4.2"
-else
-  (
-    cd "$beagle_src"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cmake-examples.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpack-macos.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-no-native.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-neon.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-cpusse-arm-linux.patch"
-    patch -p1 --batch < "$TOOL_DIR/patches/beagle-sse-arm-types.patch"
-  )
-  [[ "$CYAN_ARCH" == x64 ]] && cmake_cxx_flags="-msse4.2"
+if [[ "$CYAN_ARCH" == x64 ]]; then
+  cmake_cxx_flags="-msse4.2"
 fi
 
 cmake -S "$beagle_src" -B "$beagle_build" -G Ninja \
@@ -61,7 +49,9 @@ cmake -S "$beagle_src" -B "$beagle_build" -G Ninja \
   -DCMAKE_C_COMPILER="$CC" \
   -DCMAKE_CXX_COMPILER="$CXX" \
   -DCMAKE_CXX_FLAGS="$cmake_cxx_flags" \
-  -DBUILD_CUDA=OFF -DBUILD_OPENCL=OFF -DBUILD_JNI=OFF
+  -DBEAGLE_OPTIMIZE_FOR_NATIVE_ARCH=OFF \
+  -DBUILD_CUDA=OFF -DBUILD_OPENCL=OFF -DBUILD_JNI=OFF \
+  -DBUILD_MASCOT=OFF -DBUILD_SPECTRAL=OFF -DBUILD_TINYGPU=OFF
 cmake --build "$beagle_build" --target hmsbeagle hmsbeagle-cpu hmsbeagle-cpu-sse \
   --parallel "$CYAN_JOBS"
 
@@ -81,7 +71,7 @@ if [[ "$CYAN_PLATFORM" == windows ]]; then
   [[ -n "$import_lib" && -f "$import_lib" ]] || die "BEAGLE import library not found"
   cp "$import_lib" "$beagle_prefix/lib/libhmsbeagle.dll.a"
   cp "$core_dll" "$beagle_prefix/bin/libhmsbeagle64.dll"
-  # The BEAGLE loader asks for hmsbeagle-cpu64-40.dll, without the lib prefix.
+  # The BEAGLE loader asks for hmsbeagle-cpu64-42.dll, without the lib prefix.
   cpu_base="$(basename "$cpu_dll")"
   cpu_base="${cpu_base#lib}"
   cp "$cpu_dll" "$beagle_prefix/bin/$cpu_base"
@@ -110,6 +100,12 @@ for item in src configure configure.ac aclocal.m4 autotools \
             doc testing; do
   cp -a "$TOOL_DIR/$item" "$mb_src/"
 done
+
+# A Windows checkout can carry CRLF into the Unix build; GNU patch and the
+# generated configure script are strict about it. Leave the PDF alone.
+if [[ "$CYAN_PLATFORM" != windows ]]; then
+  find "$mb_src" -type f ! -name '*.pdf' -exec perl -pi -e 's/\r$//' {} +
+fi
 
 (
   cd "$mb_src"
@@ -231,7 +227,7 @@ cp "$TOOL_DIR/beagle-lib/LICENSE" "$stage/BEAGLE-LICENSE"
 
 if [[ "$CYAN_PLATFORM" == windows ]]; then
   cat > "$stage/README-CYAN.txt" <<EOF
-MrBayes $version built with BEAGLE 4.0.0 (generic CPU and SSE/NEON plugins)
+MrBayes $version built with BEAGLE 4.2.0 (generic CPU and SSE/NEON plugins)
 and Microsoft MPI (MS-MPI).
 
 Multi-instance runs use the bundled MS-MPI launcher:
@@ -242,14 +238,14 @@ is capped to the number of physical CPU cores; explicit values above that
 are capped as well. To use fewer threads, set it in the mrbayes block:
     set beaglethreadcount=4;
 
-The BEAGLE CPU and SSE plugins use C++11 threading; the SSE plugin maps
-SSE2 intrinsics to NEON on ARM64. All runtime DLLs needed by mb.exe, BEAGLE
+The BEAGLE CPU and SSE plugins use C++ threading; on ARM64 the SSE
+plugin maps SSE2 intrinsics to NEON through BEAGLE's built-in sse2neon. All runtime DLLs needed by mb.exe, BEAGLE
 and MS-MPI are included. If Windows refuses the portable launcher, install
 MSMpiSetup.exe as administrator.
 EOF
 else
   cat > "$stage/README-CYAN.txt" <<EOF
-MrBayes $version built with BEAGLE 4.0.0 (generic CPU and CPU-SSE/NEON
+MrBayes $version built with BEAGLE 4.2.0 (generic CPU and CPU-SSE/NEON
 plugins) and OpenMPI. "mb" is a wrapper that points BEAGLE and MPI at the
 bundled libraries; the real executable is "mb.bin".
 
