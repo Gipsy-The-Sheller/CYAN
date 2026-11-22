@@ -35,7 +35,7 @@ help_out="$(HYPHY_PATH="$pkg/res" "$bin" --help 2>&1 | tr -d '\r')"
 
 mkdir -p "$smoke"
 if [[ "$CYAN_PLATFORM" == windows ]]; then
-  ( cd "$pkg" && cmd //c ".\\hyphy-run.bat --version" ) \
+  ( cd "$pkg" && /c/Windows/System32/cmd.exe //c ".\\hyphy-run.bat --version" ) \
     > "$smoke/wrapper.log" 2>&1 \
     || { cat "$smoke/wrapper.log" >&2; die "hyphy-run.bat wrapper failed"; }
 else
@@ -47,7 +47,7 @@ grep -q "$version" "$smoke/wrapper.log" \
 
 # Exercise the packaged batch library, not just the executable.
 if [[ "$CYAN_PLATFORM" == windows ]]; then
-  ( cd "$pkg" && cmd //c ".\\hyphy-run.bat absrel --help" ) \
+  ( cd "$pkg" && /c/Windows/System32/cmd.exe //c ".\\hyphy-run.bat absrel --help" ) \
     > "$smoke/absrel.log" 2>&1
 else
   "$pkg/hyphy-run" absrel --help > "$smoke/absrel.log" 2>&1
