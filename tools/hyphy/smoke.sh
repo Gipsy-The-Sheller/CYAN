@@ -22,11 +22,22 @@ else
 fi
 [[ -d "$pkg/res" ]] || die "missing HyPhy res/ library"
 
-version_out="$(HYPHY_PATH="$pkg/res" "$bin" --version 2>&1 | tr -d '\r' | head -n 3)"
+set +e
+version_raw="$(HYPHY_PATH="$pkg/res" "$bin" --version 2>&1)"
+version_rc=$?
+set -e
+version_out="$(printf '%s\n' "$version_raw" | tr -d '\r' | head -n 3)"
+[[ "$version_rc" -eq 0 ]] \
+  || die "hyphy --version exited $version_rc: $version_raw"
 [[ "$version_out" == *"$version"* ]] \
   || die "unexpected HyPhy version output: $version_out"
 
-help_out="$(HYPHY_PATH="$pkg/res" "$bin" --help 2>&1 | tr -d '\r')"
+set +e
+help_out="$(HYPHY_PATH="$pkg/res" "$bin" --help 2>&1)"
+help_rc=$?
+set -e
+help_out="$(printf '%s\n' "$help_out" | tr -d '\r')"
+[[ "$help_rc" -eq 0 ]] || die "hyphy --help exited $help_rc: $help_out"
 [[ "$help_out" == *"HyPhy"* || "$help_out" == *"hyphy"* ]] \
   || die "HyPhy help did not mention HyPhy"
 
