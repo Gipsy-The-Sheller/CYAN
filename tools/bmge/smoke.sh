@@ -14,18 +14,30 @@ pkg="$CYAN_BUILD/stage/$tool"
 smoke="$CYAN_BUILD/$tool/smoke"
 
 [[ -f "$pkg/BMGE.jar" ]] || die "missing BMGE.jar"
-command -v java >/dev/null 2>&1 || die "java (11+) is required"
+java_bin="$(command -v java 2>/dev/null || true)"
+if [[ -z "$java_bin" && -n "${JAVA_HOME:-}" ]]; then
+  java_home="$JAVA_HOME"
+  if command -v cygpath >/dev/null 2>&1; then
+    java_home="$(cygpath -u "$JAVA_HOME")"
+  fi
+  if [[ -x "$java_home/bin/java" ]]; then
+    java_bin="$java_home/bin/java"
+  elif [[ -x "$java_home/bin/java.exe" ]]; then
+    java_bin="$java_home/bin/java.exe"
+  fi
+fi
+[[ -n "$java_bin" ]] || die "java (11+) is required"
 rm -rf "$smoke"
 mkdir -p "$smoke"
 cp "$TOOL_DIR/examples/example.fna" "$smoke/input.fna"
 
-help_out="$(java -jar "$pkg/BMGE.jar" -h 2>&1 || true)"
+help_out="$("$java_bin" -jar "$pkg/BMGE.jar" -h 2>&1 || true)"
 [[ "$help_out" == *"BMGE v$version"* ]] \
   || die "unexpected BMGE version output"
 
 (
   cd "$smoke"
-  java -jar "$pkg/BMGE.jar" -i input.fna -t NT -o selected.fna \
+  "$java_bin" -jar "$pkg/BMGE.jar" -i input.fna -t NT -o selected.fna \
     > run.log 2>&1
 ) || {
   tail -n 40 "$smoke/run.log" >&2 || true
