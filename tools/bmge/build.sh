@@ -16,7 +16,22 @@ tool=bmge
 version="$(tr -d '[:space:]' < "$TOOL_DIR/VERSION")"
 [[ "$CYAN_PLATFORM-$CYAN_ARCH" == windows-x64 ]] \
   || die "BMGE is a platform-neutral jar; build it once on windows-x64"
-command -v javac >/dev/null 2>&1 || die "javac (JDK 11+) is required"
+
+javac_bin="$(command -v javac 2>/dev/null || true)"
+jar_bin="$(command -v jar 2>/dev/null || true)"
+if [[ -z "$javac_bin" && -n "${JAVA_HOME:-}" ]]; then
+  java_home="$JAVA_HOME"
+  if command -v cygpath >/dev/null 2>&1; then
+    java_home="$(cygpath -u "$JAVA_HOME")"
+  fi
+  if [[ -x "$java_home/bin/javac" ]]; then
+    javac_bin="$java_home/bin/javac"
+  fi
+  if [[ -z "$jar_bin" && -x "$java_home/bin/jar" ]]; then
+    jar_bin="$java_home/bin/jar"
+  fi
+fi
+[[ -n "$javac_bin" ]] || die "javac (JDK 11+) is required"
 
 build="$CYAN_BUILD/$tool"
 stage="$CYAN_BUILD/stage/$tool"
@@ -25,12 +40,12 @@ mkdir -p "$build/classes" "$stage"
 cp "$TOOL_DIR/src/BMGE.java" "$build/"
 cp -a "$TOOL_DIR/src/bmge" "$build/bmge"
 
-log "Compiling BMGE $version ($(javac -version 2>&1))"
+log "Compiling BMGE $version ($("$javac_bin" -version 2>&1))"
 (
   cd "$build"
-  javac --release 11 -d classes BMGE.java bmge/*.java
-  if command -v jar >/dev/null 2>&1; then
-    jar cfe BMGE.jar BMGE -C classes .
+  "$javac_bin" --release 11 -d classes BMGE.java bmge/*.java
+  if [[ -n "$jar_bin" ]]; then
+    "$jar_bin" cfe BMGE.jar BMGE -C classes .
   else
     # Some Oracle javapath shims expose javac but not jar; a jar is a zip.
     command -v zip >/dev/null 2>&1 || die "neither jar nor zip is available"
