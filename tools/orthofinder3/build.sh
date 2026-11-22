@@ -79,7 +79,7 @@ log "Applying OrthoFinder portability patch"
 
 log "Creating Python build environment"
 "$python_bin" -m venv "$venv"
-if [[ "$CYAN_PLATFORM" == windows ]]; then
+if [[ -x "$venv/Scripts/python.exe" ]]; then
   py="$venv/Scripts/python.exe"
   pyi="$venv/Scripts/pyinstaller.exe"
 else
