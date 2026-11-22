@@ -22,6 +22,20 @@ else
 fi
 [[ -d "$pkg/res" ]] || die "missing HyPhy res/ library"
 
+if [[ "$CYAN_PLATFORM" == windows ]]; then
+  echo "== HyPhy Windows launcher diagnostics =="
+  file "$bin" || true
+  ls -l "$pkg"/*.dll || true
+  objdump -p "$bin" | grep 'DLL Name' || true
+  set +e
+  ( cd "$pkg" && /c/Windows/System32/cmd.exe //c "hyphy.exe --version" ) \
+    > "$CYAN_BUILD/$tool/hyphy-cmd.log" 2>&1
+  cmd_rc=$?
+  set -e
+  echo "cmd.exe hyphy.exe --version rc=$cmd_rc"
+  cat "$CYAN_BUILD/$tool/hyphy-cmd.log" || true
+fi
+
 set +e
 version_raw="$(HYPHY_PATH="$pkg/res" "$bin" --version 2>&1)"
 version_rc=$?
