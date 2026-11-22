@@ -24,6 +24,18 @@ work="$build/src"
 stage="$CYAN_BUILD/stage/$tool"
 venv="$build/venv"
 
+# Prefer setup-python's native interpreter over an MSYS2 Python. MSYS2's
+# Python has no manylinux/scipy wheels and would try to build SciPy from
+# source, which needs a Fortran compiler.
+if [[ -z "${PYTHON:-}" && -n "${pythonLocation:-}" ]]; then
+  py_location="$pythonLocation"
+  if command -v cygpath >/dev/null 2>&1; then
+    py_location="$(cygpath -u "$pythonLocation")"
+  fi
+  if [[ -x "$py_location/python.exe" ]]; then
+    PYTHON="$py_location/python.exe"
+  fi
+fi
 python_bin="${PYTHON:-python}"
 command -v "$python_bin" >/dev/null 2>&1 || die "Python 3.11+ is required (set PYTHON)"
 "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' \
