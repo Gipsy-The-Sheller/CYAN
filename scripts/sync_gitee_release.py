@@ -26,6 +26,9 @@ TOKEN = os.environ.get("GITEE_TOKEN", "").strip()
 LIMIT = 100 * 1024 * 1024
 MAX_UPLOAD = int(os.environ.get("GITEE_MAX_BYTES", "0") or 0)
 ONLY = {x.strip() for x in os.environ.get("GITEE_ONLY", "").split(",") if x.strip()}
+SKIP_PREFIXES = tuple(
+    x.strip() for x in os.environ.get("GITEE_SKIP_PREFIXES", "").split(",")
+    if x.strip())
 
 
 def fail(message: str) -> None:
@@ -146,12 +149,13 @@ def main() -> None:
             continue
         if ONLY and name not in ONLY:
             continue
-        if name.endswith(".zip"):
-            target_name = name[:-4] + ".tar.xz"
-        elif name.endswith(".tar.gz") and "-src." not in name:
-            target_name = name[:-7] + ".tar.xz"
-        else:
-            target_name = name
+        target_name = name
+        if SKIP_PREFIXES and name.startswith(SKIP_PREFIXES):
+            print("skip for Gitee (named):", name, flush=True)
+            continue
+        if MAX_UPLOAD and asset["size"] > MAX_UPLOAD:
+            print("skip for Gitee (oversized):", name, flush=True)
+            continue
         if target_name in present:
             print("exists, skip download", target_name, flush=True)
             skipped_existing = True
@@ -175,20 +179,8 @@ def main() -> None:
             repack_zx(local, converted)
             local.unlink()
             local = converted
-        if MAX_UPLOAD and local.stat().st_size > MAX_UPLOAD:
-            data = local.read_bytes()
-            part_size = MAX_UPLOAD
-            parts = [data[i:i + part_size]
-                     for i in range(0, len(data), part_size)]
-            for index, chunk in enumerate(parts):
-                part = work / ("%s.part-%s" % (target_name, chr(97 + index)))
-                part.write_bytes(chunk)
-                if part.name in present:
-                    print("exists, skip", part.name, flush=True)
-                else:
-                    upload(release_id, part)
-                published.append(part)
-            print("split into", len(parts), "parts", flush=True)
+        if MAX_UPLOAD and asset["size"] > MAX_UPLOAD:
+            print("skip for Gitee (oversized):", name, flush=True)
             continue
         if target_name in present:
             print("exists, skip", target_name, flush=True)
