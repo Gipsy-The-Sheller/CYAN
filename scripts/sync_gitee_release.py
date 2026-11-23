@@ -25,6 +25,7 @@ API = "https://gitee.com/api/v5"
 TOKEN = os.environ.get("GITEE_TOKEN", "").strip()
 LIMIT = 100 * 1024 * 1024
 MAX_UPLOAD = int(os.environ.get("GITEE_MAX_BYTES", "0") or 0)
+ONLY = {x.strip() for x in os.environ.get("GITEE_ONLY", "").split(",") if x.strip()}
 
 
 def fail(message: str) -> None:
@@ -142,6 +143,8 @@ def main() -> None:
         name = asset["name"]
         if name.endswith(".sha256") or name == "SHA256SUMS":
             continue
+        if ONLY and name not in ONLY:
+            continue
         target_name = name
         local = work / name
         print("download", name, asset["size"], flush=True)
@@ -163,8 +166,19 @@ def main() -> None:
             local.unlink()
             local = converted
         if MAX_UPLOAD and local.stat().st_size > MAX_UPLOAD:
-            print("skip for Gitee (over limit):", target_name,
-                  local.stat().st_size, flush=True)
+            data = local.read_bytes()
+            part_size = MAX_UPLOAD
+            parts = [data[i:i + part_size]
+                     for i in range(0, len(data), part_size)]
+            for index, chunk in enumerate(parts):
+                part = work / ("%s.part-%s" % (target_name, chr(97 + index)))
+                part.write_bytes(chunk)
+                if part.name in present:
+                    print("exists, skip", part.name, flush=True)
+                else:
+                    upload(release_id, part)
+                published.append(part)
+            print("split into", len(parts), "parts", flush=True)
             continue
         if target_name in present:
             print("exists, skip", target_name, flush=True)
@@ -172,6 +186,9 @@ def main() -> None:
             upload(release_id, local)
         published.append(local)
 
+    if ONLY:
+        print("partial run; leaving SHA256SUMS unchanged", flush=True)
+        return
     sums = work / "SHA256SUMS"
     sums.write_text(
         "".join("%s *%s\n" % (digest(path), path.name) for path in published),
