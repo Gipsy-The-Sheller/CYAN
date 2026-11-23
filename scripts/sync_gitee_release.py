@@ -139,13 +139,23 @@ def main() -> None:
 
     work = Path(tempfile.mkdtemp(prefix="cyan_gitee_"))
     published = []
+    skipped_existing = False
     for asset in payload.get("assets", []):
         name = asset["name"]
         if name.endswith(".sha256") or name == "SHA256SUMS":
             continue
         if ONLY and name not in ONLY:
             continue
-        target_name = name
+        if name.endswith(".zip"):
+            target_name = name[:-4] + ".tar.xz"
+        elif name.endswith(".tar.gz") and "-src." not in name:
+            target_name = name[:-7] + ".tar.xz"
+        else:
+            target_name = name
+        if target_name in present:
+            print("exists, skip download", target_name, flush=True)
+            skipped_existing = True
+            continue
         local = work / name
         print("download", name, asset["size"], flush=True)
         with requests.get(asset["browser_download_url"], stream=True,
@@ -186,7 +196,7 @@ def main() -> None:
             upload(release_id, local)
         published.append(local)
 
-    if ONLY:
+    if ONLY or skipped_existing:
         print("partial run; leaving SHA256SUMS unchanged", flush=True)
         return
     sums = work / "SHA256SUMS"
