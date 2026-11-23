@@ -1,0 +1,32 @@
+name: mirror-gitee
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to mirror"
+        required: true
+        default: "v2026.11.22"
+      repo:
+        description: "Gitee repository"
+        required: false
+        default: "ZJXMolls/CYAN"
+
+jobs:
+  mirror:
+    name: Mirror release to Gitee
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install requests
+        run: python -m pip install requests
+      - name: Mirror release assets
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_TAG: ${{ inputs.tag }}
+          GITEE_REPO: ${{ inputs.repo }}
+        run: python scripts/sync_gitee_release.py
