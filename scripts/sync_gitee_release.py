@@ -24,6 +24,7 @@ GITEE_REPO = os.environ.get("GITEE_REPO", "ZJXMolls/CYAN")
 API = "https://gitee.com/api/v5"
 TOKEN = os.environ.get("GITEE_TOKEN", "").strip()
 LIMIT = 100 * 1024 * 1024
+MAX_UPLOAD = int(os.environ.get("GITEE_MAX_BYTES", "0") or 0)
 
 
 def fail(message: str) -> None:
@@ -161,6 +162,10 @@ def main() -> None:
             repack_zx(local, converted)
             local.unlink()
             local = converted
+        if MAX_UPLOAD and local.stat().st_size > MAX_UPLOAD:
+            print("skip for Gitee (over limit):", target_name,
+                  local.stat().st_size, flush=True)
+            continue
         if target_name in present:
             print("exists, skip", target_name, flush=True)
         else:

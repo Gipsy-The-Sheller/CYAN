@@ -27,6 +27,7 @@ jobs:
       - name: Mirror release assets
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_MAX_BYTES: "94371840"
           GITEE_TAG: ${{ inputs.tag }}
           GITEE_REPO: ${{ inputs.repo }}
         run: python scripts/sync_gitee_release.py
