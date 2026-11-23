@@ -71,13 +71,23 @@ def existing(release_id: int) -> set[str]:
 
 
 def upload(release_id: int, path: Path) -> None:
-    with path.open("rb") as handle:
-        gitee(
-            "POST",
-            "/repos/%s/releases/%d/attach_files" % (GITEE_REPO, release_id),
-            files={"file": (path.name, handle)},
-        )
-    print("uploaded", path.name, path.stat().st_size, flush=True)
+    """Upload with fresh file handles and retries for large attachments."""
+    for attempt in range(1, 5):
+        try:
+            with path.open("rb") as handle:
+                gitee(
+                    "POST",
+                    "/repos/%s/releases/%d/attach_files"
+                    % (GITEE_REPO, release_id),
+                    files={"file": (path.name, handle)},
+                )
+            print("uploaded", path.name, path.stat().st_size, flush=True)
+            return
+        except requests.exceptions.RequestException as exc:
+            print("upload retry %d for %s: %s"
+                  % (attempt, path.name, exc), flush=True)
+            time.sleep(15 * attempt)
+    raise SystemExit("upload failed: %s" % path.name)
 
 
 def repack_zx(source: Path, target: Path) -> None:
