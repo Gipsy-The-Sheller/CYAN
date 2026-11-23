@@ -338,3 +338,22 @@ jobs:
             artifacts/*.tar.gz
             artifacts/SHA256SUMS
           generate_release_notes: true
+
+  release-gitee:
+    name: Mirror release to Gitee
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install requests
+        run: python -m pip install requests
+      - name: Mirror release assets
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_TAG: ${{ github.ref_name }}
+        run: python scripts/sync_gitee_release.py
